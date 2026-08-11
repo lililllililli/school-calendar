@@ -57,6 +57,7 @@
     line-height:1.25;
   }
   .title-block p{ margin:8px 0 0; color:var(--color-ink-soft); font-size:14px; }
+  .storage-mode-note{ font-size:12px !important; font-family:'IBM Plex Mono', monospace; }
 
   .admin-zone{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
   .stamp-btn{
@@ -259,6 +260,7 @@
       <p class="eyebrow">Class Planner · School Calendar</p>
       <h1>수행평가 &amp; 일정 캘린더</h1>
       <p>날짜를 눌러 일정을 확인하고, 관리자 모드에서 종일 일정과 교시별 일정을 기록해요.</p>
+      <p class="storage-mode-note" id="storage-mode-note"></p>
     </div>
     <div class="admin-zone">
       <button id="admin-toggle" class="stamp-btn">
@@ -309,7 +311,7 @@
     </aside>
   </div>
 
-  <footer class="foot">이 캘린더의 일정과 문의는 이 링크로 접속하는 모두에게 함께 표시돼요</footer>
+  <footer class="foot">이 캘린더의 일정과 문의는 이 링크로 접속하는 모두에게 함께 표시돼요 · 기본 인증 코드는 1234예요</footer>
 </div>
 
 <!-- 인증 모달 -->
@@ -420,7 +422,7 @@
     </div>
     <div class="field">
       <label for="inquiry-message">문의 내용</label>
-      <textarea id="inquiry-message" placeholder="과목명, 분반, 교시, 내용, 추가 특이사항(전자기기 필요, 오픈북X 등등)"></textarea>
+      <textarea id="inquiry-message" placeholder="예: 8/20 과학 수행평가 일정 추가해주세요"></textarea>
     </div>
     <p class="error-text" id="inquiry-error">문의 내용을 입력해주세요.</p>
     <div class="modal-actions">
@@ -450,6 +452,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/main.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/locales-all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.16.0/firebase-app-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.16.0/firebase-firestore-compat.js"></script>
 
 <script>
 (function(){
@@ -498,10 +502,102 @@
   let editingId = null;
   let calendar = null;
 
+  /* =====================================================================
+     친구들과 함께 쓰는 배포용 캘린더로 만들고 싶다면?
+     아래 FIREBASE_CONFIG 객체에 본인의 Firebase 프로젝트 설정 값을 넣어주세요.
+     (Firebase 콘솔 > 프로젝트 설정 > 일반 > 내 앱 > SDK 설정 및 구성 에서 복사)
+     비워두면 지금처럼 Claude 공유 저장소(또는 이 브라우저 로컬 저장소)를 사용해요.
+  ===================================================================== */
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCXlzpMKMNvFFD6i2NM4wcAwn74FIUyHYY",
+    authDomain: "school-calendar-4ed29.firebaseapp.com",
+    projectId: "school-calendar-4ed29",
+    storageBucket: "school-calendar-4ed29.firebasestorage.app",
+    messagingSenderId: "52338935706",
+    appId: "1:52338935706:web:bda6364ece473cc411dc23"
+    measurementId: "G-6WGYZX3K5C"
+  };
+
+  const firebaseConfigured = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId);
+  let db = null;
+
+  if(firebaseConfigured && typeof firebase !== 'undefined'){
+    try{
+      firebase.initializeApp(FIREBASE_CONFIG);
+      db = firebase.firestore();
+    }catch(e){ db = null; }
+  }
+
+  const LOCAL_PREFIX = 'school-planner:';
+  const hasCloudStorage = (typeof window.storage !== 'undefined');
+
+  function hasLocalStorage(){
+    try{
+      const testKey = '__sp_test__';
+      localStorage.setItem(testKey, '1');
+      localStorage.removeItem(testKey);
+      return true;
+    }catch(e){ return false; }
+  }
+  const canUseLocal = hasLocalStorage();
+
+  async function storageGet(key, shared){
+    if(db){
+      try{
+        const doc = await db.collection('school-planner').doc(key).get();
+        return doc.exists ? { key, value: doc.data().value, shared } : null;
+      }catch(e){ /* Firestore 실패 시 아래 방식으로 폴백 */ }
+    }
+    if(hasCloudStorage){
+      try{ return await window.storage.get(key, shared); }
+      catch(e){ return null; }
+    }
+    if(canUseLocal){
+      const raw = localStorage.getItem(LOCAL_PREFIX + key);
+      return raw !== null ? { key, value: raw, shared } : null;
+    }
+    return null;
+  }
+
+  async function storageSet(key, value, shared){
+    if(db){
+      try{
+        await db.collection('school-planner').doc(key).set({ value, updatedAt: Date.now() });
+        return { key, value, shared };
+      }catch(e){ /* Firestore 실패 시 아래 방식으로 폴백 */ }
+    }
+    if(hasCloudStorage){
+      try{ return await window.storage.set(key, value, shared); }
+      catch(e){ return null; }
+    }
+    if(canUseLocal){
+      try{
+        localStorage.setItem(LOCAL_PREFIX + key, value);
+        return { key, value, shared };
+      }catch(e){ return null; }
+    }
+    return null;
+  }
+
+  function updateStorageModeNote(){
+    const note = document.getElementById('storage-mode-note');
+    if(!note) return;
+    if(db){
+      note.textContent = '☁️ Firebase로 저장돼요 — 이 웹사이트를 여는 모두와 실시간으로 공유돼요.';
+    } else if(hasCloudStorage){
+      note.textContent = '☁️ 이 캘린더는 이 링크로 접속하는 모든 사람과 함께 공유돼요.';
+    } else if(canUseLocal){
+      note.textContent = '💾 지금은 이 브라우저(기기)에만 저장돼요. 다른 사람과는 공유되지 않아요.';
+    } else {
+      note.textContent = '⚠️ 이 브라우저에서는 저장 기능을 쓸 수 없어요 (시크릿 모드 등).';
+    }
+  }
+
   function todayStr(){
     const d = new Date();
     return d.toISOString().slice(0,10);
   }
+
   function uid(){
     return 'evt_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
   }
@@ -521,33 +617,47 @@
   /* ---------------- storage: events ---------------- */
   async function loadAdminCode(){
     try{
-      const res = await window.storage.get(ADMIN_CODE_KEY, true);
+      const res = await storageGet(ADMIN_CODE_KEY, true);
       if(res && res.value) adminCode = res.value;
     }catch(e){ /* 아직 설정된 코드 없음 - 기본값 사용 */ }
   }
 
   async function loadEvents(){
     try{
-      const res = await window.storage.get(STORAGE_KEY, true);
+      const res = await storageGet(STORAGE_KEY, true);
       events = res && res.value ? JSON.parse(res.value) : [];
     }catch(e){
       events = [];
     }
   }
 
-  async function saveEvents(){
-    try{
-      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(events), true);
-      if(!result){ throw new Error('save failed'); }
-    }catch(e){
-      showToast('저장 중 문제가 생겼어요. 다시 시도해주세요.');
+  async function saveWithRetry(key, value, label){
+    if(!db && !hasCloudStorage && !canUseLocal){
+      showToast(label + ' 저장 기능을 쓸 수 없는 브라우저예요 (시크릿 모드를 확인해주세요).');
+      return false;
     }
+    for(let attempt = 0; attempt < 2; attempt++){
+      try{
+        const result = await storageSet(key, value, true);
+        if(result){
+          const check = await storageGet(key, true);
+          if(check && check.value === value) return true;
+        }
+      }catch(e){ /* 재시도 */ }
+      if(attempt === 0) await new Promise(r => setTimeout(r, 600));
+    }
+    showToast(label + ' 저장 중 문제가 생겼어요. 다시 시도해주세요.');
+    return false;
+  }
+
+  async function saveEvents(){
+    return await saveWithRetry(STORAGE_KEY, JSON.stringify(events), '일정');
   }
 
   /* ---------------- storage: inquiries ---------------- */
   async function loadInquiries(){
     try{
-      const res = await window.storage.get(INQUIRY_KEY, true);
+      const res = await storageGet(INQUIRY_KEY, true);
       inquiries = res && res.value ? JSON.parse(res.value) : [];
     }catch(e){
       inquiries = [];
@@ -555,12 +665,7 @@
   }
 
   async function saveInquiries(){
-    try{
-      const result = await window.storage.set(INQUIRY_KEY, JSON.stringify(inquiries), true);
-      if(!result){ throw new Error('save failed'); }
-    }catch(e){
-      showToast('문의 저장에 실패했어요. 다시 시도해주세요.');
-    }
+    return await saveWithRetry(INQUIRY_KEY, JSON.stringify(inquiries), '문의');
   }
 
   /* ---------------- calendar ---------------- */
@@ -808,7 +913,7 @@
     const prevCode = adminCode;
     adminCode = next;
     try{
-      const result = await window.storage.set(ADMIN_CODE_KEY, adminCode, true);
+      const result = await storageSet(ADMIN_CODE_KEY, adminCode, true);
       if(!result) throw new Error('save failed');
       codeSuccess.style.display = 'block';
       setTimeout(() => codeModal.classList.add('hidden'), 900);
@@ -1062,6 +1167,7 @@
     document.getElementById('calendar-loading').style.display = 'block';
     document.getElementById('calendar-error').style.display = 'none';
     document.getElementById('calendar').style.display = 'none';
+    updateStorageModeNote();
     try{
       await Promise.all([loadAdminCode(), loadEvents(), loadInquiries()]);
       const ok = buildCalendar();

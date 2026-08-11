@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수행평가 캘린더 · 우리 반 플래너</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/main.min.css">
+<style>
+  :root{
+    --color-paper: #FAF8F1;
+    --color-grid: #E4DECD;
+    --color-card: #FFFFFF;
+    --color-ink: #1F2A44;
+    --color-ink-soft: #6B7280;
+    --color-coral: #E15A45;
+    --color-mustard: #E3A800;
+    --color-sage: #3F8361;
+    --color-sky: #3574A5;
+    --color-plum: #6B4478;
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --shadow-soft: 0 2px 10px rgba(31,42,68,0.08);
+    --shadow-card: 0 1px 0 rgba(31,42,68,0.06), 0 6px 16px rgba(31,42,68,0.06);
+  }
+
+  *{ box-sizing:border-box; }
+
+  body{
+    margin:0;
+    font-family:'Noto Sans KR', sans-serif;
+    color:var(--color-ink);
+    background-color:var(--color-paper);
+    background-image:
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size: 26px 26px;
+    min-height:100vh;
+  }
+
+  .wrap{ max-width:1180px; margin:0 auto; padding:28px 20px 60px; }
+
+  /* ---------- header ---------- */
+  header.top{
+    display:flex; align-items:flex-start; justify-content:space-between;
+    gap:16px; padding-bottom:20px; margin-bottom:22px;
+    border-bottom:2px solid var(--color-ink);
+    position:relative;
+  }
+  .title-block .eyebrow{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.14em;
+    color:var(--color-ink-soft); text-transform:uppercase; margin:0 0 6px;
+  }
+  .title-block h1{
+    font-family:'Noto Serif KR', serif; font-weight:700; font-size:30px; margin:0;
+    line-height:1.25;
+  }
+  .title-block p{ margin:8px 0 0; color:var(--color-ink-soft); font-size:14px; }
+
+  .admin-zone{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
+  .stamp-btn{
+    display:flex; align-items:center; gap:8px;
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600;
+    letter-spacing:.04em; background:var(--color-card); color:var(--color-ink);
+    border:2px solid var(--color-ink); border-radius:999px; padding:9px 16px;
+    cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
+    box-shadow:var(--shadow-soft);
+  }
+  .stamp-btn:hover{ transform:translateY(-1px); box-shadow:0 4px 14px rgba(31,42,68,0.14); }
+  .stamp-btn.active{ background:var(--color-plum); color:#fff; border-color:var(--color-plum); }
+  .stamp-btn .dot{ width:8px; height:8px; border-radius:50%; background:var(--color-ink-soft); }
+  .stamp-btn.active .dot{ background:#7BE3A6; }
+  .admin-hint{ font-size:11.5px; color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- layout ---------- */
+  .layout{ display:grid; grid-template-columns: 1fr 320px; gap:22px; align-items:start; }
+  @media (max-width: 880px){ .layout{ grid-template-columns:1fr; } }
+
+  .panel{
+    background:var(--color-card); border-radius:var(--radius-md);
+    box-shadow:var(--shadow-card); border:1px solid rgba(31,42,68,0.06);
+    padding:20px;
+  }
+
+  /* ---------- fullcalendar overrides ---------- */
+  .fc{ font-family:'Noto Sans KR', sans-serif; }
+  .fc .fc-toolbar-title{ font-family:'Noto Serif KR', serif; font-size:20px; font-weight:700; }
+  .fc .fc-button{
+    background:var(--color-paper); border:1.5px solid var(--color-ink); color:var(--color-ink);
+    box-shadow:none; text-transform:none; font-weight:600; font-size:13px;
+    border-radius:6px; padding:6px 12px;
+  }
+  .fc .fc-button:hover{ background:var(--color-ink); color:#fff; }
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active{ background:var(--color-ink); color:#fff; }
+  .fc .fc-daygrid-day-number, .fc .fc-col-header-cell-cushion{ color:var(--color-ink); text-decoration:none; }
+  .fc .fc-col-header-cell{ background:transparent; font-family:'IBM Plex Mono', monospace; font-size:12px; }
+  .fc-theme-standard td, .fc-theme-standard th{ border-color:var(--color-grid); }
+  .fc .fc-daygrid-day.fc-day-today{ background:rgba(225,90,69,0.08); }
+  .fc .fc-daygrid-day-top{
+    flex-wrap:nowrap;
+    white-space:nowrap;
+  }
+  .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number{
+    background:var(--color-coral); color:#fff; border-radius:50%;
+    width:22px; height:22px; min-width:22px; flex-shrink:0;
+    padding:0; margin:3px;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-weight:700; font-size:11.5px; line-height:1;
+    box-sizing:border-box; white-space:nowrap;
+  }
+  .fc-event{ border:none; padding:1px 6px; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
+  .fc-daygrid-day.fc-day-hoverable:hover{ background:rgba(31,42,68,0.03); cursor:pointer; }
+
+  /* ---------- sidebar ---------- */
+  .sidebar h2{ font-family:'Noto Serif KR', serif; font-size:17px; margin:0 0 4px; }
+  .sidebar .sub{ font-size:12px; color:var(--color-ink-soft); margin:0 0 14px; }
+
+  .upcoming-item{
+    display:flex; gap:10px; padding:10px 0; border-bottom:1px dashed var(--color-grid);
+    cursor:pointer;
+  }
+  .upcoming-item:last-child{ border-bottom:none; }
+  .upcoming-item .bar{ width:4px; border-radius:3px; flex-shrink:0; }
+  .upcoming-item .date{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--color-ink-soft); }
+  .upcoming-item .title{ font-size:13.5px; font-weight:600; margin-top:2px; }
+  .upcoming-item .badge{
+    display:inline-block; margin-top:5px; font-size:10.5px; font-family:'IBM Plex Mono', monospace;
+    padding:2px 7px; border-radius:999px; color:#fff; font-weight:600;
+  }
+  .empty-note{ font-size:13px; color:var(--color-ink-soft); padding:14px 0; }
+
+  .legend{ margin-top:18px; padding-top:16px; border-top:1px solid var(--color-grid); }
+  .legend h3{ font-size:12px; color:var(--color-ink-soft); text-transform:uppercase; letter-spacing:.08em; margin:0 0 10px; font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .legend-row{ display:flex; align-items:center; gap:8px; font-size:12.5px; margin-bottom:7px; }
+  .legend-row .sw{ width:10px; height:10px; border-radius:3px; }
+
+  .code-change{ margin-top:16px; }
+  .code-change button{
+    width:100%; background:none; border:1px dashed var(--color-ink-soft); color:var(--color-ink-soft);
+    border-radius:6px; padding:8px; font-size:12px; cursor:pointer; font-family:'IBM Plex Mono', monospace;
+  }
+  .code-change button:hover{ border-color:var(--color-ink); color:var(--color-ink); }
+
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(31,42,68,0.42); display:flex;
+    align-items:center; justify-content:center; padding:20px; z-index:50;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal{
+    background:var(--color-card); border-radius:var(--radius-md); padding:26px;
+    width:100%; max-width:400px; box-shadow:0 20px 50px rgba(31,42,68,0.28);
+    border:1px solid rgba(31,42,68,0.08);
+  }
+  .modal h3{ font-family:'Noto Serif KR', serif; font-size:19px; margin:0 0 6px; }
+  .modal .desc{ font-size:12.5px; color:var(--color-ink-soft); margin:0 0 18px; }
+  .field{ margin-bottom:14px; }
+  .field label{ display:block; font-size:12px; font-weight:700; color:var(--color-ink-soft); margin-bottom:5px; font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.04em; }
+  .field input, .field select, .field textarea{
+    width:100%; border:1.5px solid var(--color-grid); border-radius:6px; padding:9px 10px;
+    font-family:'Noto Sans KR', sans-serif; font-size:14px; color:var(--color-ink); background:var(--color-paper);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color:var(--color-ink); }
+  .field textarea{ resize:vertical; min-height:64px; }
+  .error-text{ font-size:12px; color:var(--color-coral); margin:-6px 0 12px; font-weight:600; display:none; }
+  .modal-actions{ display:flex; gap:8px; margin-top:6px; }
+  .btn{
+    flex:1; padding:10px 14px; border-radius:6px; font-size:13.5px; font-weight:700; cursor:pointer;
+    border:1.5px solid var(--color-ink); background:none; color:var(--color-ink); font-family:'Noto Sans KR', sans-serif;
+  }
+  .btn.primary{ background:var(--color-ink); color:#fff; }
+  .btn.danger{ border-color:var(--color-coral); color:var(--color-coral); }
+  .btn.danger.danger-confirm{ background:var(--color-coral); color:#fff; }
+  .btn.ghost{ border-color:transparent; color:var(--color-ink-soft); }
+  .btn:hover{ opacity:.85; }
+
+  .view-badge{
+    display:inline-block; font-size:11px; font-family:'IBM Plex Mono', monospace; font-weight:700;
+    padding:3px 9px; border-radius:999px; color:#fff; margin-bottom:10px;
+  }
+  .view-row{ font-size:13.5px; margin-bottom:8px; }
+  .view-row .k{ color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace; font-size:11px; text-transform:uppercase; display:block; margin-bottom:2px; }
+
+  /* ---------- admin stamp animation ---------- */
+  .stamp-pop{
+    position:fixed; top:50%; left:50%; z-index:60; pointer-events:none;
+    transform:translate(-50%,-50%) scale(2.2) rotate(-14deg); opacity:0;
+    font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:26px; letter-spacing:.08em;
+    color:var(--color-coral); border:4px solid var(--color-coral); border-radius:12px;
+    padding:14px 28px; background:rgba(255,255,255,0.9);
+  }
+  .stamp-pop.show{ animation: stampDown .55s cubic-bezier(.2,.9,.3,1.2) forwards; }
+  @keyframes stampDown{
+    0%{ opacity:0; transform:translate(-50%,-50%) scale(2.4) rotate(-18deg); }
+    55%{ opacity:1; transform:translate(-50%,-50%) scale(0.95) rotate(-10deg); }
+    75%{ opacity:1; transform:translate(-50%,-50%) scale(1.05) rotate(-12deg); }
+    100%{ opacity:0; transform:translate(-50%,-50%) scale(1) rotate(-12deg); }
+  }
+
+  .loading-note{ padding:40px 0; text-align:center; color:var(--color-ink-soft); font-size:13px; font-family:'IBM Plex Mono', monospace; }
+
+  .toast{
+    position:fixed; bottom:24px; left:50%; z-index:70;
+    transform:translateX(-50%) translateY(16px);
+    background:var(--color-ink); color:#fff; padding:11px 20px; border-radius:8px;
+    font-size:13px; box-shadow:var(--shadow-soft);
+    opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+    max-width:90vw; text-align:center;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  footer.foot{ margin-top:26px; text-align:center; font-size:11.5px; color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="title-block">
+      <p class="eyebrow">Class Planner · School Calendar</p>
+      <h1>수행평가 &amp; 일정 캘린더</h1>
+      <p>날짜를 눌러 일정을 확인하고, 관리자 모드에서 수행평가·시험 일정을 기록해요.</p>
+    </div>
+    <div class="admin-zone">
+      <button id="admin-toggle" class="stamp-btn">
+        <span class="dot"></span>
+        <span id="admin-toggle-label">관리자 모드 잠금</span>
+      </button>
+      <span class="admin-hint" id="admin-hint">조회만 가능해요</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <div id="calendar-loading" class="loading-note">캘린더를 불러오는 중...</div>
+      <div id="calendar-error" class="loading-note" style="display:none; color:var(--color-coral);">
+        캘린더를 불러오지 못했어요.<br>인터넷 연결을 확인한 뒤 새로고침 해주세요.
+        <div style="margin-top:10px;">
+          <button id="calendar-retry" class="btn" style="width:auto; display:inline-block; padding:8px 18px;">다시 시도</button>
+        </div>
+      </div>
+      <div id="calendar" style="display:none;"></div>
+    </div>
+
+    <aside class="panel sidebar">
+      <h2>다가오는 일정</h2>
+      <p class="sub">오늘 이후 가장 가까운 일정 순</p>
+      <div id="upcoming-list"><div class="empty-note">불러오는 중...</div></div>
+
+      <div class="legend">
+        <h3>일정 종류</h3>
+        <div class="legend-row"><span class="sw" style="background:var(--color-coral)"></span>시험</div>
+        <div class="legend-row"><span class="sw" style="background:var(--color-mustard)"></span>수행평가</div>
+        <div class="legend-row"><span class="sw" style="background:var(--color-sage)"></span>제출·과제</div>
+        <div class="legend-row"><span class="sw" style="background:var(--color-sky)"></span>일반 일정</div>
+      </div>
+
+      <div class="code-change" id="code-change-wrap" style="display:none;">
+        <button id="change-code-btn">인증 코드 변경하기</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="foot">이 캘린더의 일정은 이 링크로 접속하는 모두에게 함께 표시돼요 · 기본 인증 코드는 1234예요</footer>
+</div>
+
+<!-- 인증 모달 -->
+<div id="auth-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>관리자 인증</h3>
+    <p class="desc">일정을 추가·수정·삭제하려면 인증 코드를 입력하세요.</p>
+    <div class="field">
+      <label for="auth-code-input">인증 코드</label>
+      <input id="auth-code-input" type="password" inputmode="numeric" placeholder="••••" autocomplete="off">
+    </div>
+    <p class="error-text" id="auth-error">코드가 올바르지 않아요. 다시 시도해주세요.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="auth-cancel">취소</button>
+      <button class="btn primary" id="auth-submit">인증하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 일정 보기/편집 모달 -->
+<div id="event-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <!-- 조회 모드 -->
+    <div id="view-mode-block">
+      <span class="view-badge" id="view-badge">시험</span>
+      <h3 id="view-title">일정 제목</h3>
+      <div class="view-row"><span class="k">날짜</span><span id="view-date">-</span></div>
+      <div class="view-row"><span class="k">메모</span><span id="view-memo">-</span></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="view-close">닫기</button>
+      </div>
+    </div>
+
+    <!-- 편집 모드 (관리자) -->
+    <form id="edit-mode-block" style="display:none;">
+      <h3 id="edit-heading">일정 추가</h3>
+      <p class="desc">관리자 모드에서 일정을 기록하고 있어요.</p>
+      <div class="field">
+        <label for="event-title">제목</label>
+        <input id="event-title" type="text" placeholder="예: 과학 수행평가 - 실험보고서" required>
+      </div>
+      <div class="field">
+        <label for="event-type">종류</label>
+        <select id="event-type">
+          <option value="exam">시험</option>
+          <option value="assignment">수행평가</option>
+          <option value="submit">제출·과제</option>
+          <option value="general">일반 일정</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="event-date">날짜</label>
+        <input id="event-date" type="date" required>
+      </div>
+      <div class="field">
+        <label for="event-memo">메모 (선택)</label>
+        <textarea id="event-memo" placeholder="준비물, 범위, 제출 방법 등을 적어두세요"></textarea>
+      </div>
+      <p class="error-text" id="event-error">제목과 날짜를 입력해주세요.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn danger" id="event-delete" style="display:none;">삭제</button>
+        <button type="button" class="btn ghost" id="event-cancel">취소</button>
+        <button type="submit" class="btn primary">저장</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 인증 코드 변경 모달 -->
+<div id="code-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>인증 코드 변경</h3>
+    <p class="desc">새로운 인증 코드를 입력하세요. 4자 이상이어야 해요.</p>
+    <div class="field">
+      <label for="code-new-input">새 코드</label>
+      <input id="code-new-input" type="text" inputmode="numeric" autocomplete="off">
+    </div>
+    <p class="error-text" id="code-error">4자 이상으로 입력해주세요.</p>
+    <p class="error-text" id="code-success" style="color:var(--color-sage);">코드가 변경되었어요.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="code-cancel">취소</button>
+      <button class="btn primary" id="code-save">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="stamp-pop" id="stamp-pop">인증완료</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/main.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/5.11.5/locales-all.min.js"></script>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'events';
+  const ADMIN_CODE_KEY = 'admin-code';
+  const DEFAULT_CODE = '1234';
+
+  const TYPE_META = {
+    exam:       { label:'시험',      color:'var(--color-coral)',   hex:'#E15A45' },
+    assignment: { label:'수행평가',  color:'var(--color-mustard)', hex:'#E3A800' },
+    submit:     { label:'제출·과제', color:'var(--color-sage)',    hex:'#3F8361' },
+    general:    { label:'일반 일정', color:'var(--color-sky)',     hex:'#3574A5' },
+  };
+
+  const PERIOD_SCHEDULE = [
+    { label:'1교시', start:'08:40:00', end:'09:30:00' },
+    { label:'2교시', start:'09:40:00', end:'10:30:00' },
+    { label:'3교시', start:'10:40:00', end:'11:30:00' },
+    { label:'4교시', start:'11:40:00', end:'12:30:00' },
+    { label:'중식',  start:'12:30:00', end:'13:40:00' },
+    { label:'5교시', start:'13:40:00', end:'14:30:00' },
+    { label:'6교시', start:'14:40:00', end:'15:30:00' },
+    { label:'7교시', start:'15:40:00', end:'16:30:00' },
+  ];
+
+  function periodBackgroundEvents(){
+    return PERIOD_SCHEDULE.map(p => ({
+      daysOfWeek: [0,1,2,3,4,5,6],
+      startTime: p.start,
+      endTime: p.end,
+      display: 'background',
+      backgroundColor: p.label === '중식' ? 'rgba(227,168,0,0.16)' : 'rgba(31,42,68,0.05)',
+      extendedProps: { periodLabel: p.label }
+    }));
+  }
+
+  let events = [];
+  let adminCode = DEFAULT_CODE;
+  let isAdmin = false;
+  let editingId = null;
+  let calendar = null;
+
+  function todayStr(){
+    const d = new Date();
+    return d.toISOString().slice(0,10);
+  }
+  function uid(){
+    return 'evt_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  async function loadAdminCode(){
+    try{
+      const res = await window.storage.get(ADMIN_CODE_KEY, true);
+      if(res && res.value) adminCode = res.value;
+    }catch(e){ /* 아직 설정된 코드 없음 - 기본값 사용 */ }
+  }
+
+  async function loadEvents(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      events = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      events = [];
+    }
+  }
+
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  async function saveEvents(){
+    try{
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(events), true);
+      if(!result){ throw new Error('save failed'); }
+    }catch(e){
+      showToast('저장 중 문제가 생겼어요. 다시 시도해주세요.');
+    }
+  }
+
+  /* ---------------- calendar ---------------- */
+  function showCalendarError(){
+    document.getElementById('calendar-loading').style.display = 'none';
+    document.getElementById('calendar').style.display = 'none';
+    document.getElementById('calendar-error').style.display = 'block';
+  }
+
+  function buildCalendar(){
+    if(typeof FullCalendar === 'undefined'){
+      // 라이브러리 CDN 로드 실패
+      showCalendarError();
+      return false;
+    }
+
+    const el = document.getElementById('calendar');
+    let periodSourceAdded = false;
+
+    calendar = new FullCalendar.Calendar(el, {
+      initialView: 'dayGridMonth',
+      locale: 'ko',
+      height: 'auto',
+      dayMaxEvents: 3,
+      headerToolbar: { left:'prev,next today', center:'title', right:'dayGridMonth,timeGridWeek' },
+      buttonText: { today:'오늘', month:'월', week:'주' },
+      slotMinTime: '08:00:00',
+      slotMaxTime: '17:00:00',
+      slotDuration: '00:10:00',
+      slotLabelInterval: '01:00:00',
+      slotLabelFormat: { hour:'2-digit', minute:'2-digit', hour12:false },
+      allDaySlot: true,
+      events: toFcEvents(),
+      dateClick(info){
+        if(!isAdmin) return;
+        openEventModal(null, info.dateStr);
+      },
+      eventClick(info){
+        if(info.event.display === 'background') return;
+        openEventModal(info.event.id);
+      },
+      eventDidMount(info){
+        if(info.event.extendedProps && info.event.extendedProps.periodLabel){
+          const label = document.createElement('div');
+          label.className = 'period-label';
+          label.textContent = info.event.extendedProps.periodLabel;
+          info.el.appendChild(label);
+        }
+      },
+      datesSet(info){
+        const isWeek = info.view.type === 'timeGridWeek';
+        if(isWeek && !periodSourceAdded){
+          calendar.addEventSource(periodBackgroundEvents());
+          periodSourceAdded = true;
+        } else if(!isWeek && periodSourceAdded){
+          calendar.getEventSources().forEach(src => {
+            if(src.internalEventSource && src.internalEventSource.meta && Array.isArray(src.internalEventSource.meta)){
+              // custom-generated array sources only (skip the main stored-events source)
+            }
+          });
+          // simplest reliable approach: remove all background period events directly
+          calendar.getEvents().forEach(ev => {
+            if(ev.display === 'background') ev.remove();
+          });
+          periodSourceAdded = false;
+        }
+      }
+    });
+    calendar.render();
+    document.getElementById('calendar-loading').style.display = 'none';
+    document.getElementById('calendar-error').style.display = 'none';
+    el.style.display = 'block';
+    return true;
+  }
+
+  function toFcEvents(){
+    return events.map(e => {
+      const meta = TYPE_META[e.type] || TYPE_META.general;
+      return {
+        id: e.id,
+        title: e.title,
+        start: e.date,
+        allDay: true,
+        backgroundColor: meta.hex,
+        borderColor: meta.hex,
+        textColor: '#ffffff'
+      };
+    });
+  }
+
+  function refreshCalendar(){
+    if(!calendar) return;
+    calendar.getEvents().forEach(ev => ev.remove());
+    toFcEvents().forEach(ev => calendar.addEvent(ev));
+  }
+
+  /* ---------------- upcoming sidebar ---------------- */
+  function refreshUpcoming(){
+    const list = document.getElementById('upcoming-list');
+    const today = todayStr();
+    const upcoming = events
+      .filter(e => e.date >= today)
+      .sort((a,b) => a.date.localeCompare(b.date))
+      .slice(0,8);
+
+    if(upcoming.length === 0){
+      list.innerHTML = '<div class="empty-note">등록된 예정 일정이 없어요.</div>';
+      return;
+    }
+
+    list.innerHTML = upcoming.map(e => {
+      const meta = TYPE_META[e.type] || TYPE_META.general;
+      return `
+        <div class="upcoming-item" data-id="${e.id}">
+          <span class="bar" style="background:${meta.hex}"></span>
+          <div>
+            <div class="date">${e.date}</div>
+            <div class="title">${escapeHtml(e.title)}</div>
+            <span class="badge" style="background:${meta.hex}">${meta.label}</span>
+          </div>
+        </div>`;
+    }).join('');
+
+    list.querySelectorAll('.upcoming-item').forEach(node => {
+      node.addEventListener('click', () => openEventModal(node.dataset.id));
+    });
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /* ---------------- admin toggle ---------------- */
+  const adminBtn = document.getElementById('admin-toggle');
+  const adminLabel = document.getElementById('admin-toggle-label');
+  const adminHint = document.getElementById('admin-hint');
+  const codeChangeWrap = document.getElementById('code-change-wrap');
+
+  adminBtn.addEventListener('click', () => {
+    if(isAdmin){
+      isAdmin = false;
+      updateAdminUi();
+    } else {
+      openAuthModal();
+    }
+  });
+
+  function updateAdminUi(){
+    adminBtn.classList.toggle('active', isAdmin);
+    adminLabel.textContent = isAdmin ? '관리자 모드 해제' : '관리자 모드 잠금';
+    adminHint.textContent = isAdmin ? '추가·수정·삭제 가능해요' : '조회만 가능해요';
+    codeChangeWrap.style.display = isAdmin ? 'block' : 'none';
+  }
+
+  /* ---------------- auth modal ---------------- */
+  const authModal = document.getElementById('auth-modal');
+  const authInput = document.getElementById('auth-code-input');
+  const authError = document.getElementById('auth-error');
+
+  function openAuthModal(){
+    authInput.value = '';
+    authError.style.display = 'none';
+    authModal.classList.remove('hidden');
+    setTimeout(() => authInput.focus(), 50);
+  }
+  function closeAuthModal(){ authModal.classList.add('hidden'); }
+
+  document.getElementById('auth-cancel').addEventListener('click', closeAuthModal);
+  document.getElementById('auth-submit').addEventListener('click', submitAuth);
+  authInput.addEventListener('keydown', e => { if(e.key === 'Enter') submitAuth(); });
+
+  function submitAuth(){
+    if(authInput.value === adminCode){
+      isAdmin = true;
+      updateAdminUi();
+      closeAuthModal();
+      playStamp();
+    } else {
+      authError.style.display = 'block';
+    }
+  }
+
+  function playStamp(){
+    const stamp = document.getElementById('stamp-pop');
+    stamp.classList.remove('show');
+    void stamp.offsetWidth;
+    stamp.classList.add('show');
+  }
+
+  const codeModal = document.getElementById('code-modal');
+  const codeInput = document.getElementById('code-new-input');
+  const codeError = document.getElementById('code-error');
+  const codeSuccess = document.getElementById('code-success');
+
+  document.getElementById('change-code-btn').addEventListener('click', () => {
+    codeInput.value = '';
+    codeError.textContent = '4자 이상으로 입력해주세요.';
+    codeError.style.display = 'none';
+    codeSuccess.style.display = 'none';
+    codeModal.classList.remove('hidden');
+    setTimeout(() => codeInput.focus(), 50);
+  });
+
+  document.getElementById('code-cancel').addEventListener('click', () => {
+    codeModal.classList.add('hidden');
+  });
+
+  document.getElementById('code-save').addEventListener('click', async () => {
+    const next = codeInput.value.trim();
+    codeSuccess.style.display = 'none';
+
+    if(next.length < 4){
+      codeError.textContent = '4자 이상으로 입력해주세요.';
+      codeError.style.display = 'block';
+      return;
+    }
+    codeError.style.display = 'none';
+
+    const prevCode = adminCode;
+    adminCode = next;
+    try{
+      const result = await window.storage.set(ADMIN_CODE_KEY, adminCode, true);
+      if(!result) throw new Error('save failed');
+      codeSuccess.style.display = 'block';
+      setTimeout(() => codeModal.classList.add('hidden'), 900);
+    }catch(e){
+      adminCode = prevCode;
+      codeError.textContent = '코드 저장에 실패했어요. 다시 시도해주세요.';
+      codeError.style.display = 'block';
+    }
+  });
+
+  /* ---------------- event modal ---------------- */
+  const eventModal = document.getElementById('event-modal');
+  const viewBlock = document.getElementById('view-mode-block');
+  const editBlock = document.getElementById('edit-mode-block');
+
+  function openEventModal(id, prefillDate){
+    resetDeleteConfirm();
+    editingId = id || null;
+    const existing = id ? events.find(e => e.id === id) : null;
+
+    if(existing && !isAdmin){
+      // 조회 모드
+      viewBlock.style.display = 'block';
+      editBlock.style.display = 'none';
+      const meta = TYPE_META[existing.type] || TYPE_META.general;
+      const badge = document.getElementById('view-badge');
+      badge.textContent = meta.label;
+      badge.style.background = meta.hex;
+      document.getElementById('view-title').textContent = existing.title;
+      document.getElementById('view-date').textContent = existing.date;
+      document.getElementById('view-memo').textContent = existing.memo ? existing.memo : '메모가 없어요.';
+    } else {
+      // 편집 모드 (관리자만 진입 가능)
+      viewBlock.style.display = 'none';
+      editBlock.style.display = 'block';
+      document.getElementById('event-error').style.display = 'none';
+      document.getElementById('edit-heading').textContent = existing ? '일정 수정' : '일정 추가';
+      document.getElementById('event-title').value = existing ? existing.title : '';
+      document.getElementById('event-type').value = existing ? existing.type : 'assignment';
+      document.getElementById('event-date').value = existing ? existing.date : (prefillDate || todayStr());
+      document.getElementById('event-memo').value = existing ? (existing.memo || '') : '';
+      document.getElementById('event-delete').style.display = existing ? 'inline-block' : 'none';
+    }
+
+    eventModal.classList.remove('hidden');
+  }
+
+  function closeEventModal(){
+    eventModal.classList.add('hidden');
+    editingId = null;
+    resetDeleteConfirm();
+  }
+
+  document.getElementById('view-close').addEventListener('click', closeEventModal);
+  document.getElementById('event-cancel').addEventListener('click', closeEventModal);
+
+  document.getElementById('edit-mode-block').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const title = document.getElementById('event-title').value.trim();
+    const date = document.getElementById('event-date').value;
+    const type = document.getElementById('event-type').value;
+    const memo = document.getElementById('event-memo').value.trim();
+
+    if(!title || !date){
+      document.getElementById('event-error').style.display = 'block';
+      return;
+    }
+
+    if(editingId){
+      const idx = events.findIndex(ev => ev.id === editingId);
+      if(idx > -1) events[idx] = { ...events[idx], title, date, type, memo };
+    } else {
+      events.push({ id: uid(), title, date, type, memo });
+    }
+
+    await saveEvents();
+    refreshCalendar();
+    refreshUpcoming();
+    closeEventModal();
+  });
+
+  const deleteBtn = document.getElementById('event-delete');
+  let confirmingDelete = false;
+  let confirmDeleteTimer = null;
+
+  function resetDeleteConfirm(){
+    confirmingDelete = false;
+    deleteBtn.textContent = '삭제';
+    deleteBtn.classList.remove('danger-confirm');
+    if(confirmDeleteTimer){ clearTimeout(confirmDeleteTimer); confirmDeleteTimer = null; }
+  }
+
+  deleteBtn.addEventListener('click', async () => {
+    if(!editingId) return;
+
+    if(!confirmingDelete){
+      confirmingDelete = true;
+      deleteBtn.textContent = '정말 삭제할까요? 한 번 더 누르세요';
+      deleteBtn.classList.add('danger-confirm');
+      confirmDeleteTimer = setTimeout(resetDeleteConfirm, 3000);
+      return;
+    }
+
+    resetDeleteConfirm();
+    events = events.filter(ev => ev.id !== editingId);
+    await saveEvents();
+    refreshCalendar();
+    refreshUpcoming();
+    closeEventModal();
+    showToast('일정이 삭제되었어요.');
+  });
+
+  /* ---------------- init ---------------- */
+  async function init(){
+    document.getElementById('calendar-loading').style.display = 'block';
+    document.getElementById('calendar-error').style.display = 'none';
+    document.getElementById('calendar').style.display = 'none';
+    try{
+      await Promise.all([loadAdminCode(), loadEvents()]);
+      const ok = buildCalendar();
+      if(ok){
+        refreshUpcoming();
+        updateAdminUi();
+      }
+    }catch(e){
+      showCalendarError();
+    }
+  }
+
+  document.getElementById('calendar-retry').addEventListener('click', init);
+
+  init();
+})();
+</script>
+
+</body>
+</html>

@@ -46,7 +46,7 @@
     display:flex; align-items:flex-start; justify-content:space-between;
     gap:16px; padding-bottom:20px; margin-bottom:22px;
     border-bottom:2px solid var(--color-ink);
-    position:relative;
+    flex-wrap:wrap;
   }
   .title-block .eyebrow{
     font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.14em;
@@ -60,18 +60,24 @@
 
   .admin-zone{ display:flex; flex-direction:column; align-items:flex-end; gap:8px; }
   .stamp-btn{
-    display:flex; align-items:center; gap:8px;
+    display:inline-flex; align-items:center; gap:8px;
     font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600;
     letter-spacing:.04em; background:var(--color-card); color:var(--color-ink);
     border:2px solid var(--color-ink); border-radius:999px; padding:9px 16px;
     cursor:pointer; transition:transform .15s ease, box-shadow .15s ease;
-    box-shadow:var(--shadow-soft);
+    box-shadow:var(--shadow-soft); white-space:nowrap;
   }
   .stamp-btn:hover{ transform:translateY(-1px); box-shadow:0 4px 14px rgba(31,42,68,0.14); }
   .stamp-btn.active{ background:var(--color-plum); color:#fff; border-color:var(--color-plum); }
+  .stamp-btn.subtle{ border:1.5px dashed var(--color-ink-soft); color:var(--color-ink-soft); box-shadow:none; background:none; padding:7px 14px; font-size:12px; }
+  .stamp-btn.subtle:hover{ border-color:var(--color-ink); color:var(--color-ink); transform:none; box-shadow:none; }
   .stamp-btn .dot{ width:8px; height:8px; border-radius:50%; background:var(--color-ink-soft); }
   .stamp-btn.active .dot{ background:#7BE3A6; }
   .admin-hint{ font-size:11.5px; color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace; }
+  .count-badge{
+    display:inline-block; background:var(--color-coral); color:#fff; border-radius:999px;
+    font-size:10.5px; font-weight:700; padding:1px 7px; margin-left:2px;
+  }
 
   /* ---------- layout ---------- */
   .layout{ display:grid; grid-template-columns: 1fr 320px; gap:22px; align-items:start; }
@@ -103,7 +109,7 @@
     white-space:nowrap;
   }
   .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number{
-    background:var(--color-coral); color:#fff; border-radius:50%;
+    background:var(--color-coral); color:#fff; border-radius:6px;
     width:22px; height:22px; min-width:22px; flex-shrink:0;
     padding:0; margin:3px;
     display:inline-flex; align-items:center; justify-content:center;
@@ -112,10 +118,20 @@
   }
   .fc-event{ border:none; padding:1px 6px; border-radius:5px; font-size:12px; font-weight:600; cursor:pointer; }
   .fc-daygrid-day.fc-day-hoverable:hover{ background:rgba(31,42,68,0.03); cursor:pointer; }
+  .period-label{
+    position:absolute; top:2px; left:4px; font-size:10px; font-weight:700;
+    color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace;
+    pointer-events:none; letter-spacing:.02em;
+  }
 
   /* ---------- sidebar ---------- */
   .sidebar h2{ font-family:'Noto Serif KR', serif; font-size:17px; margin:0 0 4px; }
   .sidebar .sub{ font-size:12px; color:var(--color-ink-soft); margin:0 0 14px; }
+  .list-heading{
+    font-size:11.5px; text-transform:uppercase; letter-spacing:.07em; color:var(--color-ink-soft);
+    font-family:'IBM Plex Mono', monospace; font-weight:700; margin:16px 0 6px;
+  }
+  .list-heading:first-of-type{ margin-top:0; }
 
   .upcoming-item{
     display:flex; gap:10px; padding:10px 0; border-bottom:1px dashed var(--color-grid);
@@ -176,12 +192,33 @@
   .btn.ghost{ border-color:transparent; color:var(--color-ink-soft); }
   .btn:hover{ opacity:.85; }
 
+  .segmented{ display:flex; border:1.5px solid var(--color-grid); border-radius:6px; overflow:hidden; }
+  .seg-btn{
+    flex:1; padding:8px 6px; font-size:12.5px; font-weight:700; background:var(--color-paper);
+    border:none; cursor:pointer; color:var(--color-ink-soft); font-family:'Noto Sans KR', sans-serif;
+  }
+  .seg-btn:not(:last-child){ border-right:1.5px solid var(--color-grid); }
+  .seg-btn.active{ background:var(--color-ink); color:#fff; }
+
   .view-badge{
     display:inline-block; font-size:11px; font-family:'IBM Plex Mono', monospace; font-weight:700;
     padding:3px 9px; border-radius:999px; color:#fff; margin-bottom:10px;
   }
   .view-row{ font-size:13.5px; margin-bottom:8px; }
   .view-row .k{ color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace; font-size:11px; text-transform:uppercase; display:block; margin-bottom:2px; }
+
+  .inquiry-item{ padding:10px 0; border-bottom:1px dashed var(--color-grid); }
+  .inquiry-item:last-child{ border-bottom:none; }
+  .inquiry-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--color-ink-soft); margin-bottom:4px; }
+  .inquiry-msg{ font-size:13.5px; margin-bottom:8px; line-height:1.45; white-space:pre-wrap; }
+  .inquiry-actions{ display:flex; gap:6px; }
+  .mini-btn{
+    font-size:11.5px; font-weight:700; padding:5px 10px; border-radius:6px;
+    border:1.5px solid var(--color-ink); background:none; color:var(--color-ink); cursor:pointer;
+    font-family:'Noto Sans KR', sans-serif;
+  }
+  .mini-btn.use-btn{ background:var(--color-ink); color:#fff; }
+  .mini-btn.del-btn{ border-color:var(--color-coral); color:var(--color-coral); }
 
   /* ---------- admin stamp animation ---------- */
   .stamp-pop{
@@ -221,7 +258,7 @@
     <div class="title-block">
       <p class="eyebrow">Class Planner · School Calendar</p>
       <h1>수행평가 &amp; 일정 캘린더</h1>
-      <p>날짜를 눌러 일정을 확인하고, 관리자 모드에서 수행평가·시험 일정을 기록해요.</p>
+      <p>날짜를 눌러 일정을 확인하고, 관리자 모드에서 종일 일정과 교시별 일정을 기록해요.</p>
     </div>
     <div class="admin-zone">
       <button id="admin-toggle" class="stamp-btn">
@@ -229,6 +266,10 @@
         <span id="admin-toggle-label">관리자 모드 잠금</span>
       </button>
       <span class="admin-hint" id="admin-hint">조회만 가능해요</span>
+      <button id="inquiry-open-btn" class="stamp-btn subtle">일정 추가 문의하기</button>
+      <button id="inquiry-inbox-btn" class="stamp-btn subtle" style="display:none;">
+        문의함 <span id="inquiry-count-badge" class="count-badge">0</span>
+      </button>
     </div>
   </header>
 
@@ -247,7 +288,12 @@
     <aside class="panel sidebar">
       <h2>다가오는 일정</h2>
       <p class="sub">오늘 이후 가장 가까운 일정 순</p>
-      <div id="upcoming-list"><div class="empty-note">불러오는 중...</div></div>
+
+      <h3 class="list-heading">종일 일정</h3>
+      <div id="upcoming-allday-list"><div class="empty-note">불러오는 중...</div></div>
+
+      <h3 class="list-heading">교시별 일정</h3>
+      <div id="upcoming-period-list"><div class="empty-note">불러오는 중...</div></div>
 
       <div class="legend">
         <h3>일정 종류</h3>
@@ -263,7 +309,7 @@
     </aside>
   </div>
 
-  <footer class="foot">이 캘린더의 일정은 이 링크로 접속하는 모두에게 함께 표시돼요 · 기본 인증 코드는 1234예요</footer>
+  <footer class="foot">이 캘린더의 일정과 문의는 이 링크로 접속하는 모두에게 함께 표시돼요</footer>
 </div>
 
 <!-- 인증 모달 -->
@@ -291,6 +337,7 @@
       <span class="view-badge" id="view-badge">시험</span>
       <h3 id="view-title">일정 제목</h3>
       <div class="view-row"><span class="k">날짜</span><span id="view-date">-</span></div>
+      <div class="view-row" id="view-period-row" style="display:none;"><span class="k">교시</span><span id="view-period">-</span></div>
       <div class="view-row"><span class="k">메모</span><span id="view-memo">-</span></div>
       <div class="modal-actions">
         <button class="btn ghost" id="view-close">닫기</button>
@@ -313,6 +360,18 @@
           <option value="submit">제출·과제</option>
           <option value="general">일반 일정</option>
         </select>
+      </div>
+      <div class="field">
+        <label>일정 시간대</label>
+        <div class="segmented" id="event-timing-toggle">
+          <button type="button" class="seg-btn active" data-timing="allday">종일 일정</button>
+          <button type="button" class="seg-btn" data-timing="period">교시별 일정</button>
+        </div>
+        <input type="hidden" id="event-timing" value="allday">
+      </div>
+      <div class="field" id="event-period-field" style="display:none;">
+        <label for="event-period">교시 선택</label>
+        <select id="event-period"></select>
       </div>
       <div class="field">
         <label for="event-date">날짜</label>
@@ -350,6 +409,41 @@
   </div>
 </div>
 
+<!-- 문의 작성 모달 -->
+<div id="inquiry-modal" class="modal-overlay hidden">
+  <div class="modal">
+    <h3>일정 추가 문의하기</h3>
+    <p class="desc">추가하고 싶은 일정을 적어주시면 관리자가 확인 후 등록해줄게요.</p>
+    <div class="field">
+      <label for="inquiry-date">희망 날짜 (선택)</label>
+      <input id="inquiry-date" type="date">
+    </div>
+    <div class="field">
+      <label for="inquiry-message">문의 내용</label>
+      <textarea id="inquiry-message" placeholder="과목명, 날짜, 교시, 내용, 추가 특이사항(전자기기 필요, 암기 필수 등등)"></textarea>
+    </div>
+    <p class="error-text" id="inquiry-error">문의 내용을 입력해주세요.</p>
+    <div class="modal-actions">
+      <button class="btn ghost" id="inquiry-cancel">취소</button>
+      <button class="btn primary" id="inquiry-submit">보내기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 문의함 (관리자) -->
+<div id="inquiry-inbox-modal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:460px;">
+    <h3>문의함</h3>
+    <p class="desc">학생들이 남긴 일정 추가 문의예요. 확인 후 처리해주세요.</p>
+    <div id="inquiry-inbox-list" style="max-height:340px; overflow-y:auto;">
+      <div class="empty-note">불러오는 중...</div>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn ghost" id="inquiry-inbox-close">닫기</button>
+    </div>
+  </div>
+</div>
+
 <div class="stamp-pop" id="stamp-pop">인증완료</div>
 
 <div id="toast" class="toast"></div>
@@ -361,6 +455,7 @@
 (function(){
   const STORAGE_KEY = 'events';
   const ADMIN_CODE_KEY = 'admin-code';
+  const INQUIRY_KEY = 'inquiries';
   const DEFAULT_CODE = '1234';
 
   const TYPE_META = {
@@ -371,15 +466,19 @@
   };
 
   const PERIOD_SCHEDULE = [
-    { label:'1교시', start:'08:40:00', end:'09:30:00' },
-    { label:'2교시', start:'09:40:00', end:'10:30:00' },
-    { label:'3교시', start:'10:40:00', end:'11:30:00' },
-    { label:'4교시', start:'11:40:00', end:'12:30:00' },
-    { label:'중식',  start:'12:30:00', end:'13:40:00' },
-    { label:'5교시', start:'13:40:00', end:'14:30:00' },
-    { label:'6교시', start:'14:40:00', end:'15:30:00' },
-    { label:'7교시', start:'15:40:00', end:'16:30:00' },
+    { key:'p1',    label:'1교시', start:'08:40:00', end:'09:30:00' },
+    { key:'p2',    label:'2교시', start:'09:40:00', end:'10:30:00' },
+    { key:'p3',    label:'3교시', start:'10:40:00', end:'11:30:00' },
+    { key:'p4',    label:'4교시', start:'11:40:00', end:'12:30:00' },
+    { key:'lunch', label:'중식',  start:'12:30:00', end:'13:40:00' },
+    { key:'p5',    label:'5교시', start:'13:40:00', end:'14:30:00' },
+    { key:'p6',    label:'6교시', start:'14:40:00', end:'15:30:00' },
+    { key:'p7',    label:'7교시', start:'15:40:00', end:'16:30:00' },
   ];
+
+  function getPeriodMeta(key){
+    return PERIOD_SCHEDULE.find(p => p.key === key) || null;
+  }
 
   function periodBackgroundEvents(){
     return PERIOD_SCHEDULE.map(p => ({
@@ -387,12 +486,13 @@
       startTime: p.start,
       endTime: p.end,
       display: 'background',
-      backgroundColor: p.label === '중식' ? 'rgba(227,168,0,0.16)' : 'rgba(31,42,68,0.05)',
+      backgroundColor: p.key === 'lunch' ? 'rgba(227,168,0,0.16)' : 'rgba(31,42,68,0.05)',
       extendedProps: { periodLabel: p.label }
     }));
   }
 
   let events = [];
+  let inquiries = [];
   let adminCode = DEFAULT_CODE;
   let isAdmin = false;
   let editingId = null;
@@ -405,7 +505,20 @@
   function uid(){
     return 'evt_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
   }
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._timer);
+    showToast._timer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
 
+  /* ---------------- storage: events ---------------- */
   async function loadAdminCode(){
     try{
       const res = await window.storage.get(ADMIN_CODE_KEY, true);
@@ -422,20 +535,31 @@
     }
   }
 
-  function showToast(msg){
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    clearTimeout(showToast._timer);
-    showToast._timer = setTimeout(() => t.classList.remove('show'), 2600);
-  }
-
   async function saveEvents(){
     try{
       const result = await window.storage.set(STORAGE_KEY, JSON.stringify(events), true);
       if(!result){ throw new Error('save failed'); }
     }catch(e){
       showToast('저장 중 문제가 생겼어요. 다시 시도해주세요.');
+    }
+  }
+
+  /* ---------------- storage: inquiries ---------------- */
+  async function loadInquiries(){
+    try{
+      const res = await window.storage.get(INQUIRY_KEY, true);
+      inquiries = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      inquiries = [];
+    }
+  }
+
+  async function saveInquiries(){
+    try{
+      const result = await window.storage.set(INQUIRY_KEY, JSON.stringify(inquiries), true);
+      if(!result){ throw new Error('save failed'); }
+    }catch(e){
+      showToast('문의 저장에 실패했어요. 다시 시도해주세요.');
     }
   }
 
@@ -448,7 +572,6 @@
 
   function buildCalendar(){
     if(typeof FullCalendar === 'undefined'){
-      // 라이브러리 CDN 로드 실패
       showCalendarError();
       return false;
     }
@@ -468,11 +591,19 @@
       slotDuration: '00:10:00',
       slotLabelInterval: '01:00:00',
       slotLabelFormat: { hour:'2-digit', minute:'2-digit', hour12:false },
+      displayEventTime: false,
       allDaySlot: true,
       events: toFcEvents(),
       dateClick(info){
         if(!isAdmin) return;
-        openEventModal(null, info.dateStr);
+        const datePart = info.dateStr.slice(0,10);
+        let prefillPeriod = null;
+        if(info.view.type === 'timeGridWeek' && !info.allDay){
+          const timePart = info.date.toTimeString().slice(0,8);
+          const match = PERIOD_SCHEDULE.find(p => timePart >= p.start && timePart < p.end);
+          if(match) prefillPeriod = match.key;
+        }
+        openEventModal(null, datePart, prefillPeriod);
       },
       eventClick(info){
         if(info.event.display === 'background') return;
@@ -492,12 +623,6 @@
           calendar.addEventSource(periodBackgroundEvents());
           periodSourceAdded = true;
         } else if(!isWeek && periodSourceAdded){
-          calendar.getEventSources().forEach(src => {
-            if(src.internalEventSource && src.internalEventSource.meta && Array.isArray(src.internalEventSource.meta)){
-              // custom-generated array sources only (skip the main stored-events source)
-            }
-          });
-          // simplest reliable approach: remove all background period events directly
           calendar.getEvents().forEach(ev => {
             if(ev.display === 'background') ev.remove();
           });
@@ -515,60 +640,74 @@
   function toFcEvents(){
     return events.map(e => {
       const meta = TYPE_META[e.type] || TYPE_META.general;
-      return {
+      const pm = e.period ? getPeriodMeta(e.period) : null;
+      const base = {
         id: e.id,
-        title: e.title,
-        start: e.date,
-        allDay: true,
+        title: (pm ? pm.label + ' · ' : '') + e.title,
         backgroundColor: meta.hex,
         borderColor: meta.hex,
         textColor: '#ffffff'
       };
+      if(pm){
+        base.start = e.date + 'T' + pm.start;
+        base.end = e.date + 'T' + pm.end;
+        base.allDay = false;
+      } else {
+        base.start = e.date;
+        base.allDay = true;
+      }
+      return base;
     });
   }
 
   function refreshCalendar(){
     if(!calendar) return;
-    calendar.getEvents().forEach(ev => ev.remove());
+    calendar.getEvents().forEach(ev => {
+      if(ev.display !== 'background') ev.remove();
+    });
     toFcEvents().forEach(ev => calendar.addEvent(ev));
   }
 
   /* ---------------- upcoming sidebar ---------------- */
-  function refreshUpcoming(){
-    const list = document.getElementById('upcoming-list');
-    const today = todayStr();
-    const upcoming = events
-      .filter(e => e.date >= today)
-      .sort((a,b) => a.date.localeCompare(b.date))
-      .slice(0,8);
+  function periodSortIndex(e){
+    if(!e.period) return -1;
+    const idx = PERIOD_SCHEDULE.findIndex(p => p.key === e.period);
+    return idx === -1 ? 999 : idx;
+  }
 
-    if(upcoming.length === 0){
-      list.innerHTML = '<div class="empty-note">등록된 예정 일정이 없어요.</div>';
+  function renderUpcomingList(containerId, list){
+    const container = document.getElementById(containerId);
+    if(list.length === 0){
+      container.innerHTML = '<div class="empty-note">등록된 일정이 없어요.</div>';
       return;
     }
-
-    list.innerHTML = upcoming.map(e => {
+    container.innerHTML = list.map(e => {
       const meta = TYPE_META[e.type] || TYPE_META.general;
+      const pm = e.period ? getPeriodMeta(e.period) : null;
       return `
         <div class="upcoming-item" data-id="${e.id}">
           <span class="bar" style="background:${meta.hex}"></span>
           <div>
-            <div class="date">${e.date}</div>
+            <div class="date">${e.date}${pm ? ' · ' + pm.label : ''}</div>
             <div class="title">${escapeHtml(e.title)}</div>
             <span class="badge" style="background:${meta.hex}">${meta.label}</span>
           </div>
         </div>`;
     }).join('');
 
-    list.querySelectorAll('.upcoming-item').forEach(node => {
+    container.querySelectorAll('.upcoming-item').forEach(node => {
       node.addEventListener('click', () => openEventModal(node.dataset.id));
     });
   }
 
-  function escapeHtml(str){
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+  function refreshUpcoming(){
+    const today = todayStr();
+    const upcoming = events
+      .filter(e => e.date >= today)
+      .sort((a,b) => a.date.localeCompare(b.date) || periodSortIndex(a) - periodSortIndex(b));
+
+    renderUpcomingList('upcoming-allday-list', upcoming.filter(e => !e.period).slice(0,6));
+    renderUpcomingList('upcoming-period-list', upcoming.filter(e => !!e.period).slice(0,6));
   }
 
   /* ---------------- admin toggle ---------------- */
@@ -576,6 +715,8 @@
   const adminLabel = document.getElementById('admin-toggle-label');
   const adminHint = document.getElementById('admin-hint');
   const codeChangeWrap = document.getElementById('code-change-wrap');
+  const inquiryInboxBtn = document.getElementById('inquiry-inbox-btn');
+  const inquiryCountBadge = document.getElementById('inquiry-count-badge');
 
   adminBtn.addEventListener('click', () => {
     if(isAdmin){
@@ -591,6 +732,12 @@
     adminLabel.textContent = isAdmin ? '관리자 모드 해제' : '관리자 모드 잠금';
     adminHint.textContent = isAdmin ? '추가·수정·삭제 가능해요' : '조회만 가능해요';
     codeChangeWrap.style.display = isAdmin ? 'block' : 'none';
+    updateInquiryBadge();
+  }
+
+  function updateInquiryBadge(){
+    inquiryInboxBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    inquiryCountBadge.textContent = inquiries.length;
   }
 
   /* ---------------- auth modal ---------------- */
@@ -628,6 +775,7 @@
     stamp.classList.add('show');
   }
 
+  /* ---------------- 인증 코드 변경 ---------------- */
   const codeModal = document.getElementById('code-modal');
   const codeInput = document.getElementById('code-new-input');
   const codeError = document.getElementById('code-error');
@@ -671,12 +819,40 @@
     }
   });
 
+  /* ---------------- 일정 시간대 토글 (종일/교시별) ---------------- */
+  const timingButtons = Array.from(document.querySelectorAll('#event-timing-toggle .seg-btn'));
+  const timingHidden = document.getElementById('event-timing');
+  const periodField = document.getElementById('event-period-field');
+  const periodSelect = document.getElementById('event-period');
+
+  PERIOD_SCHEDULE.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.key;
+    opt.textContent = `${p.label} (${p.start.slice(0,5)}~${p.end.slice(0,5)})`;
+    periodSelect.appendChild(opt);
+  });
+
+  function setTimingUI(timing, periodKey){
+    timingButtons.forEach(b => b.classList.toggle('active', b.dataset.timing === timing));
+    timingHidden.value = timing;
+    periodField.style.display = timing === 'period' ? 'block' : 'none';
+    if(timing === 'period' && periodKey){
+      periodSelect.value = periodKey;
+    } else if(timing === 'period'){
+      periodSelect.selectedIndex = 0;
+    }
+  }
+
+  timingButtons.forEach(btn => {
+    btn.addEventListener('click', () => setTimingUI(btn.dataset.timing, null));
+  });
+
   /* ---------------- event modal ---------------- */
   const eventModal = document.getElementById('event-modal');
   const viewBlock = document.getElementById('view-mode-block');
   const editBlock = document.getElementById('edit-mode-block');
 
-  function openEventModal(id, prefillDate){
+  function openEventModal(id, prefillDate, prefillPeriod){
     resetDeleteConfirm();
     editingId = id || null;
     const existing = id ? events.find(e => e.id === id) : null;
@@ -691,6 +867,16 @@
       badge.style.background = meta.hex;
       document.getElementById('view-title').textContent = existing.title;
       document.getElementById('view-date').textContent = existing.date;
+
+      const pm = existing.period ? getPeriodMeta(existing.period) : null;
+      const periodRow = document.getElementById('view-period-row');
+      if(pm){
+        periodRow.style.display = 'block';
+        document.getElementById('view-period').textContent = `${pm.label} (${pm.start.slice(0,5)}~${pm.end.slice(0,5)})`;
+      } else {
+        periodRow.style.display = 'none';
+      }
+
       document.getElementById('view-memo').textContent = existing.memo ? existing.memo : '메모가 없어요.';
     } else {
       // 편집 모드 (관리자만 진입 가능)
@@ -700,9 +886,17 @@
       document.getElementById('edit-heading').textContent = existing ? '일정 수정' : '일정 추가';
       document.getElementById('event-title').value = existing ? existing.title : '';
       document.getElementById('event-type').value = existing ? existing.type : 'assignment';
-      document.getElementById('event-date').value = existing ? existing.date : (prefillDate || todayStr());
+      document.getElementById('event-date').value = existing ? existing.date : ((prefillDate || todayStr()).slice(0,10));
       document.getElementById('event-memo').value = existing ? (existing.memo || '') : '';
       document.getElementById('event-delete').style.display = existing ? 'inline-block' : 'none';
+
+      if(existing){
+        setTimingUI(existing.period ? 'period' : 'allday', existing.period || null);
+      } else if(prefillPeriod){
+        setTimingUI('period', prefillPeriod);
+      } else {
+        setTimingUI('allday', null);
+      }
     }
 
     eventModal.classList.remove('hidden');
@@ -723,6 +917,8 @@
     const date = document.getElementById('event-date').value;
     const type = document.getElementById('event-type').value;
     const memo = document.getElementById('event-memo').value.trim();
+    const timing = timingHidden.value;
+    const period = timing === 'period' ? periodSelect.value : null;
 
     if(!title || !date){
       document.getElementById('event-error').style.display = 'block';
@@ -731,9 +927,9 @@
 
     if(editingId){
       const idx = events.findIndex(ev => ev.id === editingId);
-      if(idx > -1) events[idx] = { ...events[idx], title, date, type, memo };
+      if(idx > -1) events[idx] = { ...events[idx], title, date, type, memo, period };
     } else {
-      events.push({ id: uid(), title, date, type, memo });
+      events.push({ id: uid(), title, date, type, memo, period });
     }
 
     await saveEvents();
@@ -773,13 +969,101 @@
     showToast('일정이 삭제되었어요.');
   });
 
+  /* ---------------- 문의 작성 (비관리자) ---------------- */
+  const inquiryModal = document.getElementById('inquiry-modal');
+  const inquiryDateInput = document.getElementById('inquiry-date');
+  const inquiryMessageInput = document.getElementById('inquiry-message');
+  const inquiryError = document.getElementById('inquiry-error');
+
+  document.getElementById('inquiry-open-btn').addEventListener('click', () => {
+    inquiryDateInput.value = '';
+    inquiryMessageInput.value = '';
+    inquiryError.style.display = 'none';
+    inquiryModal.classList.remove('hidden');
+  });
+
+  document.getElementById('inquiry-cancel').addEventListener('click', () => {
+    inquiryModal.classList.add('hidden');
+  });
+
+  document.getElementById('inquiry-submit').addEventListener('click', async () => {
+    const message = inquiryMessageInput.value.trim();
+    if(!message){
+      inquiryError.style.display = 'block';
+      return;
+    }
+    inquiryError.style.display = 'none';
+
+    inquiries.push({
+      id: uid(),
+      message,
+      requestedDate: inquiryDateInput.value || '',
+      createdAt: new Date().toISOString()
+    });
+
+    await saveInquiries();
+    updateInquiryBadge();
+    inquiryModal.classList.add('hidden');
+    showToast('문의가 접수되었어요. 감사해요!');
+  });
+
+  /* ---------------- 문의함 (관리자) ---------------- */
+  const inquiryInboxModal = document.getElementById('inquiry-inbox-modal');
+
+  inquiryInboxBtn.addEventListener('click', () => {
+    renderInquiryInbox();
+    inquiryInboxModal.classList.remove('hidden');
+  });
+  document.getElementById('inquiry-inbox-close').addEventListener('click', () => {
+    inquiryInboxModal.classList.add('hidden');
+  });
+
+  function renderInquiryInbox(){
+    const list = document.getElementById('inquiry-inbox-list');
+    if(inquiries.length === 0){
+      list.innerHTML = '<div class="empty-note">아직 접수된 문의가 없어요.</div>';
+      return;
+    }
+    const sorted = [...inquiries].sort((a,b) => b.createdAt.localeCompare(a.createdAt));
+    list.innerHTML = sorted.map(q => `
+      <div class="inquiry-item" data-id="${q.id}">
+        <div class="inquiry-date">${q.requestedDate ? q.requestedDate : '날짜 미지정'}</div>
+        <div class="inquiry-msg">${escapeHtml(q.message)}</div>
+        <div class="inquiry-actions">
+          <button type="button" class="mini-btn use-btn" data-id="${q.id}">일정으로 등록</button>
+          <button type="button" class="mini-btn del-btn" data-id="${q.id}">삭제</button>
+        </div>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.use-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const q = inquiries.find(x => x.id === btn.dataset.id);
+        if(!q) return;
+        inquiryInboxModal.classList.add('hidden');
+        openEventModal(null, q.requestedDate || todayStr());
+        document.getElementById('event-title').value = q.message.slice(0, 60);
+      });
+    });
+
+    list.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        inquiries = inquiries.filter(x => x.id !== btn.dataset.id);
+        await saveInquiries();
+        updateInquiryBadge();
+        renderInquiryInbox();
+        showToast('문의를 삭제했어요.');
+      });
+    });
+  }
+
   /* ---------------- init ---------------- */
   async function init(){
     document.getElementById('calendar-loading').style.display = 'block';
     document.getElementById('calendar-error').style.display = 'none';
     document.getElementById('calendar').style.display = 'none';
     try{
-      await Promise.all([loadAdminCode(), loadEvents()]);
+      await Promise.all([loadAdminCode(), loadEvents(), loadInquiries()]);
       const ok = buildCalendar();
       if(ok){
         refreshUpcoming();

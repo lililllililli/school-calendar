@@ -509,13 +509,13 @@
      비워두면 지금처럼 Claude 공유 저장소(또는 이 브라우저 로컬 저장소)를 사용해요.
   ===================================================================== */
   const FIREBASE_CONFIG = {
-    apiKey: "AIzaSyCXlzpMKMNvFFD6i2NM4wcAwn74FIUyHYY",
-    authDomain: "school-calendar-4ed29.firebaseapp.com",
-    projectId: "school-calendar-4ed29",
-    storageBucket: "school-calendar-4ed29.firebasestorage.app",
-    messagingSenderId: "52338935706",
-    appId: "1:52338935706:web:bda6364ece473cc411dc23"
-    measurementId: "G-6WGYZX3K5C"
+    apiKey: "",
+    authDomain: "",
+    projectId: "",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: "",
+    measurementId: ""
   };
 
   const firebaseConfigured = !!(FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId);
@@ -541,12 +541,30 @@
   }
   const canUseLocal = hasLocalStorage();
 
+  function withTimeout(promise, ms){
+    return new Promise((resolve) => {
+      let done = false;
+      const timer = setTimeout(() => {
+        if(!done){ done = true; resolve({ timedOut: true }); }
+      }, ms);
+      promise.then(
+        (val) => { if(!done){ done = true; clearTimeout(timer); resolve({ timedOut:false, value: val }); } },
+        (err) => { if(!done){ done = true; clearTimeout(timer); resolve({ timedOut:false, error: err }); } }
+      );
+    });
+  }
+
   async function storageGet(key, shared){
     if(db){
-      try{
-        const doc = await db.collection('school-planner').doc(key).get();
+      const outcome = await withTimeout(
+        db.collection('school-planner').doc(key).get(),
+        6000
+      );
+      if(!outcome.timedOut && !outcome.error){
+        const doc = outcome.value;
         return doc.exists ? { key, value: doc.data().value, shared } : null;
-      }catch(e){ /* Firestore 실패 시 아래 방식으로 폴백 */ }
+      }
+      // Firestore가 타임아웃되거나 오류가 나면 아래 방식으로 폴백
     }
     if(hasCloudStorage){
       try{ return await window.storage.get(key, shared); }
@@ -561,10 +579,14 @@
 
   async function storageSet(key, value, shared){
     if(db){
-      try{
-        await db.collection('school-planner').doc(key).set({ value, updatedAt: Date.now() });
+      const outcome = await withTimeout(
+        db.collection('school-planner').doc(key).set({ value, updatedAt: Date.now() }),
+        6000
+      );
+      if(!outcome.timedOut && !outcome.error){
         return { key, value, shared };
-      }catch(e){ /* Firestore 실패 시 아래 방식으로 폴백 */ }
+      }
+      // Firestore가 타임아웃되거나 오류가 나면 아래 방식으로 폴백
     }
     if(hasCloudStorage){
       try{ return await window.storage.set(key, value, shared); }
@@ -1169,7 +1191,9 @@
     document.getElementById('calendar').style.display = 'none';
     updateStorageModeNote();
     try{
-      await Promise.all([loadAdminCode(), loadEvents(), loadInquiries()]);
+      const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries()]);
+      const watchdog = new Promise((resolve) => setTimeout(resolve, 9000));
+      await Promise.race([loadAll, watchdog]);
       const ok = buildCalendar();
       if(ok){
         refreshUpcoming();

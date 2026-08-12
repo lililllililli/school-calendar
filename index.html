@@ -125,6 +125,20 @@
     pointer-events:none; letter-spacing:.02em;
   }
 
+  /* ---------- 일요일/토요일 기본 색상 ---------- */
+  .fc .fc-day-sun .fc-daygrid-day-number,
+  .fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion{ color:var(--color-coral); }
+  .fc .fc-day-sat .fc-daygrid-day-number,
+  .fc .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion{ color:var(--color-sky); }
+
+  /* ---------- 공휴일 / 쉬는 날 (일요일과 동일한 스타일) ---------- */
+  .fc-daygrid-day.is-holiday .fc-daygrid-day-number{ color:var(--color-coral); }
+  .holiday-label{
+    position:absolute; bottom:2px; left:4px; right:4px; font-size:9.5px; font-weight:700;
+    color:var(--color-coral); font-family:'IBM Plex Mono', monospace; letter-spacing:.01em;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; pointer-events:none;
+  }
+
   /* ---------- sidebar ---------- */
   .sidebar h2{ font-family:'Noto Serif KR', serif; font-size:17px; margin:0 0 4px; }
   .sidebar .sub{ font-size:12px; color:var(--color-ink-soft); margin:0 0 14px; }
@@ -312,6 +326,7 @@
       <button id="inquiry-inbox-btn" class="stamp-btn subtle" style="display:none;">
         문의함 <span id="inquiry-count-badge" class="count-badge">0</span>
       </button>
+      <button id="holiday-manage-btn" class="stamp-btn subtle" style="display:none;">빨간날·쉬는 날 관리</button>
     </div>
   </header>
 
@@ -356,6 +371,7 @@
         <div class="legend-row"><span class="sw" style="background:var(--color-mustard)"></span>수행평가</div>
         <div class="legend-row"><span class="sw" style="background:var(--color-sage)"></span>제출·과제</div>
         <div class="legend-row"><span class="sw" style="background:var(--color-sky)"></span>일반 일정</div>
+        <div class="legend-row"><span class="sw" style="background:var(--color-coral)"></span>빨간날·쉬는 날</div>
       </div>
 
       <div class="code-change" id="code-change-wrap" style="display:none;">
@@ -475,7 +491,7 @@
     </div>
     <div class="field">
       <label for="inquiry-message">문의 내용</label>
-      <textarea id="inquiry-message" placeholder="과목명, 분반, 교시, 수행 내용, 특이사항(전자기기 필요, 오픈북X)"></textarea>
+      <textarea id="inquiry-message" placeholder="교과목, 분반, 교시, 수행 내용, 특이사항(전자기기 사용 가능, 오픈북X)"></textarea>
     </div>
     <p class="error-text" id="inquiry-error">문의 내용을 입력해주세요.</p>
     <div class="modal-actions">
@@ -526,6 +542,33 @@
   </div>
 </div>
 
+<!-- 빨간날·쉬는 날 관리 모달 (관리자) -->
+<div id="holiday-modal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:440px;">
+    <h3 id="holiday-modal-heading">빨간날·쉬는 날 추가</h3>
+    <p class="desc">공휴일이나 재량휴업일 등 학교를 쉬는 날을 등록하면 달력에 빨간색으로 표시돼요.</p>
+    <div class="field">
+      <label for="holiday-title">날짜 이름</label>
+      <input id="holiday-title" type="text" placeholder="예: 개천절, 재량휴업일">
+    </div>
+    <div class="field">
+      <label for="holiday-date">날짜</label>
+      <input id="holiday-date" type="date">
+    </div>
+    <p class="error-text" id="holiday-error">이름과 날짜를 입력해주세요.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn danger" id="holiday-delete" style="display:none;">삭제</button>
+      <button type="button" class="btn ghost" id="holiday-cancel">닫기</button>
+      <button type="button" class="btn primary" id="holiday-save">저장</button>
+    </div>
+    <h3 class="list-heading" style="margin-top:18px;">등록된 빨간날·쉬는 날</h3>
+    <div id="holiday-manage-list" style="max-height:200px; overflow-y:auto;">
+      <div class="empty-note">등록된 날짜가 없어요.</div>
+    </div>
+    <button type="button" class="stamp-btn subtle" id="holiday-new-btn" style="margin-top:12px; width:100%; justify-content:center;">+ 새 날짜 추가</button>
+  </div>
+</div>
+
 <div class="stamp-pop" id="stamp-pop">인증완료</div>
 
 <div id="toast" class="toast"></div>
@@ -541,6 +584,7 @@
   const ADMIN_CODE_KEY = 'admin-code';
   const INQUIRY_KEY = 'inquiries';
   const DDAY_KEY = 'ddays';
+  const HOLIDAY_KEY = 'holidays';
   const DEFAULT_CODE = '1234';
 
   const TYPE_META = {
@@ -580,6 +624,8 @@
   let inquiries = [];
   let ddays = [];
   let editingDdayId = null;
+  let holidays = [];
+  let editingHolidayId = null;
   let adminCode = DEFAULT_CODE;
   let isAdmin = false;
   let editingId = null;
@@ -787,6 +833,20 @@
     return await saveWithRetry(DDAY_KEY, JSON.stringify(ddays), '디데이');
   }
 
+  /* ---------------- storage: holidays ---------------- */
+  async function loadHolidays(){
+    try{
+      const res = await storageGet(HOLIDAY_KEY, true);
+      holidays = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      holidays = [];
+    }
+  }
+
+  async function saveHolidays(){
+    return await saveWithRetry(HOLIDAY_KEY, JSON.stringify(holidays), '휴일');
+  }
+
   /* ---------------- calendar ---------------- */
   function showCalendarError(){
     document.getElementById('calendar-loading').style.display = 'none';
@@ -840,6 +900,15 @@
           label.textContent = info.event.extendedProps.periodLabel;
           info.el.appendChild(label);
         }
+        if(info.event.extendedProps && info.event.extendedProps.isHoliday){
+          const label = document.createElement('div');
+          label.className = 'holiday-label';
+          label.textContent = info.event.extendedProps.holidayLabel;
+          info.el.appendChild(label);
+
+          const dayCell = info.el.closest('.fc-daygrid-day');
+          if(dayCell) dayCell.classList.add('is-holiday');
+        }
       },
       datesSet(info){
         const isWeek = info.view.type === 'timeGridWeek';
@@ -848,17 +917,41 @@
           periodSourceAdded = true;
         } else if(!isWeek && periodSourceAdded){
           calendar.getEvents().forEach(ev => {
-            if(ev.display === 'background') ev.remove();
+            if(ev.display === 'background' && ev.extendedProps && ev.extendedProps.periodLabel){
+              ev.remove();
+            }
           });
           periodSourceAdded = false;
         }
       }
     });
     calendar.render();
+    calendar.addEventSource(holidayBackgroundEvents());
     document.getElementById('calendar-loading').style.display = 'none';
     document.getElementById('calendar-error').style.display = 'none';
     el.style.display = 'block';
     return true;
+  }
+
+  function holidayBackgroundEvents(){
+    return holidays.map(h => ({
+      start: h.date,
+      allDay: true,
+      display: 'background',
+      backgroundColor: 'transparent',
+      extendedProps: { isHoliday: true, holidayLabel: h.title }
+    }));
+  }
+
+  function refreshHolidayEvents(){
+    if(!calendar) return;
+    calendar.getEvents().forEach(ev => {
+      if(ev.display === 'background' && ev.extendedProps && ev.extendedProps.isHoliday){
+        ev.remove();
+      }
+    });
+    document.querySelectorAll('.fc-daygrid-day.is-holiday').forEach(cell => cell.classList.remove('is-holiday'));
+    calendar.addEventSource(holidayBackgroundEvents());
   }
 
   function toFcEvents(){
@@ -960,6 +1053,8 @@
     const ddayManageBtn = document.getElementById('dday-manage-btn');
     if(ddayManageBtn) ddayManageBtn.style.display = isAdmin ? 'inline-flex' : 'none';
     renderDdayList();
+    const holidayManageBtnEl = document.getElementById('holiday-manage-btn');
+    if(holidayManageBtnEl) holidayManageBtnEl.style.display = isAdmin ? 'inline-flex' : 'none';
   }
 
   function updateInquiryBadge(){
@@ -1424,6 +1519,109 @@
     showToast('디데이를 삭제했어요.');
   });
 
+  /* ---------------- 빨간날·쉬는 날 관리 (관리자) ---------------- */
+  const holidayModal = document.getElementById('holiday-modal');
+  const holidayTitleInput = document.getElementById('holiday-title');
+  const holidayDateInput = document.getElementById('holiday-date');
+  const holidayError = document.getElementById('holiday-error');
+  const holidayDeleteBtn = document.getElementById('holiday-delete');
+  const holidayManageBtn = document.getElementById('holiday-manage-btn');
+  let confirmingHolidayDelete = false;
+  let confirmHolidayDeleteTimer = null;
+
+  function resetHolidayDeleteConfirm(){
+    confirmingHolidayDelete = false;
+    holidayDeleteBtn.textContent = '삭제';
+    holidayDeleteBtn.classList.remove('danger-confirm');
+    if(confirmHolidayDeleteTimer){ clearTimeout(confirmHolidayDeleteTimer); confirmHolidayDeleteTimer = null; }
+  }
+
+  function renderHolidayManageList(){
+    const list = document.getElementById('holiday-manage-list');
+    if(holidays.length === 0){
+      list.innerHTML = '<div class="empty-note">등록된 날짜가 없어요.</div>';
+      return;
+    }
+    const sorted = [...holidays].sort((a,b) => a.date.localeCompare(b.date));
+    list.innerHTML = sorted.map(h => `
+      <div class="dday-manage-item" data-id="${h.id}">
+        <span class="dm-title">${escapeHtml(h.title)}</span>
+        <span class="dm-date">${h.date}</span>
+      </div>
+    `).join('');
+    list.querySelectorAll('.dday-manage-item').forEach(node => {
+      node.addEventListener('click', () => openHolidayModal(node.dataset.id));
+    });
+  }
+
+  function openHolidayModal(id){
+    resetHolidayDeleteConfirm();
+    editingHolidayId = id || null;
+    const existing = id ? holidays.find(h => h.id === id) : null;
+
+    document.getElementById('holiday-modal-heading').textContent = existing ? '빨간날·쉬는 날 수정' : '빨간날·쉬는 날 추가';
+    holidayTitleInput.value = existing ? existing.title : '';
+    holidayDateInput.value = existing ? existing.date : '';
+    holidayError.style.display = 'none';
+    holidayDeleteBtn.style.display = existing ? 'inline-block' : 'none';
+
+    renderHolidayManageList();
+    holidayModal.classList.remove('hidden');
+    setTimeout(() => holidayTitleInput.focus(), 50);
+  }
+
+  function closeHolidayModal(){
+    holidayModal.classList.add('hidden');
+    editingHolidayId = null;
+    resetHolidayDeleteConfirm();
+  }
+
+  holidayManageBtn.addEventListener('click', () => openHolidayModal(null));
+  document.getElementById('holiday-new-btn').addEventListener('click', () => openHolidayModal(null));
+  document.getElementById('holiday-cancel').addEventListener('click', closeHolidayModal);
+
+  document.getElementById('holiday-save').addEventListener('click', async () => {
+    const title = holidayTitleInput.value.trim();
+    const date = holidayDateInput.value;
+
+    if(!title || !date){
+      holidayError.style.display = 'block';
+      return;
+    }
+    holidayError.style.display = 'none';
+
+    if(editingHolidayId){
+      const idx = holidays.findIndex(h => h.id === editingHolidayId);
+      if(idx > -1) holidays[idx] = { ...holidays[idx], title, date };
+    } else {
+      holidays.push({ id: uid(), title, date });
+    }
+
+    await saveHolidays();
+    refreshHolidayEvents();
+    openHolidayModal(editingHolidayId || holidays[holidays.length - 1].id);
+    showToast('빨간날·쉬는 날이 저장되었어요.');
+  });
+
+  holidayDeleteBtn.addEventListener('click', async () => {
+    if(!editingHolidayId) return;
+
+    if(!confirmingHolidayDelete){
+      confirmingHolidayDelete = true;
+      holidayDeleteBtn.textContent = '정말 삭제할까요? 한 번 더 누르세요';
+      holidayDeleteBtn.classList.add('danger-confirm');
+      confirmHolidayDeleteTimer = setTimeout(resetHolidayDeleteConfirm, 3000);
+      return;
+    }
+
+    resetHolidayDeleteConfirm();
+    holidays = holidays.filter(h => h.id !== editingHolidayId);
+    await saveHolidays();
+    refreshHolidayEvents();
+    closeHolidayModal();
+    showToast('삭제했어요.');
+  });
+
   /* ---------------- init ---------------- */
   async function init(){
     document.getElementById('calendar-loading').style.display = 'block';
@@ -1431,7 +1629,7 @@
     document.getElementById('calendar').style.display = 'none';
     updateStorageModeNote();
     try{
-      const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries(), loadDdays()]);
+      const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries(), loadDdays(), loadHolidays()]);
       const watchdog = new Promise((resolve) => setTimeout(resolve, 9000));
       await Promise.race([loadAll, watchdog]);
       const ok = buildCalendar();

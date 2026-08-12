@@ -250,6 +250,46 @@
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
 
   footer.foot{ margin-top:26px; text-align:center; font-size:11.5px; color:var(--color-ink-soft); font-family:'IBM Plex Mono', monospace; }
+
+  /* ---------- D-Day panel ---------- */
+  .dday-panel{ margin-bottom:22px; }
+  .dday-panel-header{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+    margin-bottom:16px; flex-wrap:wrap;
+  }
+  .dday-panel-header h2{ font-family:'Noto Serif KR', serif; font-size:18px; margin:0 0 4px; }
+  .dday-panel-header .sub{ margin:0; font-size:12.5px; color:var(--color-ink-soft); }
+
+  .dday-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:14px;
+  }
+  .dday-card{
+    background:var(--color-paper); border:1.5px solid var(--color-ink); border-radius:10px;
+    padding:18px 16px; text-align:center; position:relative; overflow:hidden;
+  }
+  .dday-card::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:5px; background:var(--color-sky);
+  }
+  .dday-card.urgent::before{ background:var(--color-coral); }
+  .dday-card.today::before{ background:var(--color-coral); }
+  .dday-card-number{
+    font-family:'Noto Serif KR', serif; font-weight:700; font-size:34px; color:var(--color-sky);
+    line-height:1.1; margin-bottom:6px;
+  }
+  .dday-card.urgent .dday-card-number{ color:var(--color-coral); }
+  .dday-card.today .dday-card-number{ color:var(--color-coral); }
+  .dday-card-title{ font-size:14px; font-weight:700; margin-bottom:4px; word-break:keep-all; }
+  .dday-card-date{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--color-ink-soft); }
+  .dday-card.clickable{ cursor:pointer; transition:transform .12s ease; }
+  .dday-card.clickable:hover{ transform:translateY(-2px); box-shadow:var(--shadow-soft); }
+
+  .dday-manage-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 0; border-bottom:1px dashed var(--color-grid); cursor:pointer; font-size:13px;
+  }
+  .dday-manage-item:last-child{ border-bottom:none; }
+  .dday-manage-item .dm-title{ font-weight:600; }
+  .dday-manage-item .dm-date{ font-family:'IBM Plex Mono', monospace; font-size:11.5px; color:var(--color-ink-soft); }
 </style>
 </head>
 <body>
@@ -274,6 +314,19 @@
       </button>
     </div>
   </header>
+
+  <div class="panel dday-panel">
+    <div class="dday-panel-header">
+      <div>
+        <h2>중요 시험 디데이</h2>
+        <p class="sub">중간고사·기말고사처럼 큰 시험까지 남은 날짜예요 (달력에는 표시되지 않아요)</p>
+      </div>
+      <button id="dday-manage-btn" class="stamp-btn subtle" style="display:none;">디데이 관리</button>
+    </div>
+    <div id="dday-list" class="dday-grid">
+      <div class="empty-note">불러오는 중...</div>
+    </div>
+  </div>
 
   <div class="layout">
     <div class="panel">
@@ -422,7 +475,7 @@
     </div>
     <div class="field">
       <label for="inquiry-message">문의 내용</label>
-      <textarea id="inquiry-message" placeholder="예: 8/20 과학 수행평가 일정 추가해주세요"></textarea>
+      <textarea id="inquiry-message" placeholder="과목명, 분반, 교시, 수행 내용, 특이사항(전자기기 필요, 오픈북X)"></textarea>
     </div>
     <p class="error-text" id="inquiry-error">문의 내용을 입력해주세요.</p>
     <div class="modal-actions">
@@ -446,6 +499,33 @@
   </div>
 </div>
 
+<!-- 디데이 관리 모달 (관리자) -->
+<div id="dday-modal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:440px;">
+    <h3 id="dday-modal-heading">디데이 추가</h3>
+    <p class="desc">중간고사·기말고사 같은 중요한 시험 날짜를 등록해두면 크게 표시돼요.</p>
+    <div class="field">
+      <label for="dday-title">시험 이름</label>
+      <input id="dday-title" type="text" placeholder="예: 2학기 중간고사">
+    </div>
+    <div class="field">
+      <label for="dday-date">날짜</label>
+      <input id="dday-date" type="date">
+    </div>
+    <p class="error-text" id="dday-error">이름과 날짜를 입력해주세요.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn danger" id="dday-delete" style="display:none;">삭제</button>
+      <button type="button" class="btn ghost" id="dday-cancel">닫기</button>
+      <button type="button" class="btn primary" id="dday-save">저장</button>
+    </div>
+    <h3 class="list-heading" style="margin-top:18px;">등록된 디데이</h3>
+    <div id="dday-manage-list" style="max-height:200px; overflow-y:auto;">
+      <div class="empty-note">등록된 디데이가 없어요.</div>
+    </div>
+    <button type="button" class="stamp-btn subtle" id="dday-new-btn" style="margin-top:12px; width:100%; justify-content:center;">+ 새 디데이 추가</button>
+  </div>
+</div>
+
 <div class="stamp-pop" id="stamp-pop">인증완료</div>
 
 <div id="toast" class="toast"></div>
@@ -460,6 +540,7 @@
   const STORAGE_KEY = 'events';
   const ADMIN_CODE_KEY = 'admin-code';
   const INQUIRY_KEY = 'inquiries';
+  const DDAY_KEY = 'ddays';
   const DEFAULT_CODE = '1234';
 
   const TYPE_META = {
@@ -497,6 +578,8 @@
 
   let events = [];
   let inquiries = [];
+  let ddays = [];
+  let editingDdayId = null;
   let adminCode = DEFAULT_CODE;
   let isAdmin = false;
   let editingId = null;
@@ -690,6 +773,20 @@
     return await saveWithRetry(INQUIRY_KEY, JSON.stringify(inquiries), '문의');
   }
 
+  /* ---------------- storage: ddays ---------------- */
+  async function loadDdays(){
+    try{
+      const res = await storageGet(DDAY_KEY, true);
+      ddays = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      ddays = [];
+    }
+  }
+
+  async function saveDdays(){
+    return await saveWithRetry(DDAY_KEY, JSON.stringify(ddays), '디데이');
+  }
+
   /* ---------------- calendar ---------------- */
   function showCalendarError(){
     document.getElementById('calendar-loading').style.display = 'none';
@@ -860,6 +957,9 @@
     adminHint.textContent = isAdmin ? '추가·수정·삭제 가능해요' : '조회만 가능해요';
     codeChangeWrap.style.display = isAdmin ? 'block' : 'none';
     updateInquiryBadge();
+    const ddayManageBtn = document.getElementById('dday-manage-btn');
+    if(ddayManageBtn) ddayManageBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    renderDdayList();
   }
 
   function updateInquiryBadge(){
@@ -1184,6 +1284,146 @@
     });
   }
 
+  /* ---------------- D-Day ---------------- */
+  function diffDaysFromToday(dateStr){
+    const today = new Date(todayStr() + 'T00:00:00');
+    const target = new Date(dateStr + 'T00:00:00');
+    return Math.round((target - today) / 86400000);
+  }
+
+  function renderDdayList(){
+    const container = document.getElementById('dday-list');
+    if(!container) return;
+
+    const upcoming = ddays
+      .filter(d => diffDaysFromToday(d.date) >= 0)
+      .sort((a,b) => diffDaysFromToday(a.date) - diffDaysFromToday(b.date));
+
+    if(upcoming.length === 0){
+      container.innerHTML = '<div class="empty-note">등록된 디데이가 없어요.' + (isAdmin ? ' "디데이 관리" 버튼으로 추가해보세요.' : '') + '</div>';
+      return;
+    }
+
+    container.innerHTML = upcoming.map(d => {
+      const diff = diffDaysFromToday(d.date);
+      const label = diff === 0 ? 'D-DAY' : ('D-' + diff);
+      const stateClass = diff === 0 ? 'today' : (diff <= 3 ? 'urgent' : '');
+      return `
+        <div class="dday-card ${stateClass} ${isAdmin ? 'clickable' : ''}" data-id="${d.id}">
+          <div class="dday-card-number">${label}</div>
+          <div class="dday-card-title">${escapeHtml(d.title)}</div>
+          <div class="dday-card-date">${d.date}</div>
+        </div>`;
+    }).join('');
+
+    if(isAdmin){
+      container.querySelectorAll('.dday-card').forEach(node => {
+        node.addEventListener('click', () => openDdayModal(node.dataset.id));
+      });
+    }
+  }
+
+  function renderDdayManageList(){
+    const list = document.getElementById('dday-manage-list');
+    if(ddays.length === 0){
+      list.innerHTML = '<div class="empty-note">등록된 디데이가 없어요.</div>';
+      return;
+    }
+    const sorted = [...ddays].sort((a,b) => a.date.localeCompare(b.date));
+    list.innerHTML = sorted.map(d => `
+      <div class="dday-manage-item" data-id="${d.id}">
+        <span class="dm-title">${escapeHtml(d.title)}</span>
+        <span class="dm-date">${d.date}</span>
+      </div>
+    `).join('');
+    list.querySelectorAll('.dday-manage-item').forEach(node => {
+      node.addEventListener('click', () => openDdayModal(node.dataset.id));
+    });
+  }
+
+  const ddayModal = document.getElementById('dday-modal');
+  const ddayTitleInput = document.getElementById('dday-title');
+  const ddayDateInput = document.getElementById('dday-date');
+  const ddayError = document.getElementById('dday-error');
+  const ddayDeleteBtn = document.getElementById('dday-delete');
+  let confirmingDdayDelete = false;
+  let confirmDdayDeleteTimer = null;
+
+  function resetDdayDeleteConfirm(){
+    confirmingDdayDelete = false;
+    ddayDeleteBtn.textContent = '삭제';
+    ddayDeleteBtn.classList.remove('danger-confirm');
+    if(confirmDdayDeleteTimer){ clearTimeout(confirmDdayDeleteTimer); confirmDdayDeleteTimer = null; }
+  }
+
+  function openDdayModal(id){
+    resetDdayDeleteConfirm();
+    editingDdayId = id || null;
+    const existing = id ? ddays.find(d => d.id === id) : null;
+
+    document.getElementById('dday-modal-heading').textContent = existing ? '디데이 수정' : '디데이 추가';
+    ddayTitleInput.value = existing ? existing.title : '';
+    ddayDateInput.value = existing ? existing.date : '';
+    ddayError.style.display = 'none';
+    ddayDeleteBtn.style.display = existing ? 'inline-block' : 'none';
+
+    renderDdayManageList();
+    ddayModal.classList.remove('hidden');
+    setTimeout(() => ddayTitleInput.focus(), 50);
+  }
+
+  function closeDdayModal(){
+    ddayModal.classList.add('hidden');
+    editingDdayId = null;
+    resetDdayDeleteConfirm();
+  }
+
+  document.getElementById('dday-manage-btn').addEventListener('click', () => openDdayModal(null));
+  document.getElementById('dday-new-btn').addEventListener('click', () => openDdayModal(null));
+  document.getElementById('dday-cancel').addEventListener('click', closeDdayModal);
+
+  document.getElementById('dday-save').addEventListener('click', async () => {
+    const title = ddayTitleInput.value.trim();
+    const date = ddayDateInput.value;
+
+    if(!title || !date){
+      ddayError.style.display = 'block';
+      return;
+    }
+    ddayError.style.display = 'none';
+
+    if(editingDdayId){
+      const idx = ddays.findIndex(d => d.id === editingDdayId);
+      if(idx > -1) ddays[idx] = { ...ddays[idx], title, date };
+    } else {
+      ddays.push({ id: uid(), title, date });
+    }
+
+    await saveDdays();
+    renderDdayList();
+    openDdayModal(editingDdayId || ddays[ddays.length - 1].id);
+    showToast('디데이가 저장되었어요.');
+  });
+
+  ddayDeleteBtn.addEventListener('click', async () => {
+    if(!editingDdayId) return;
+
+    if(!confirmingDdayDelete){
+      confirmingDdayDelete = true;
+      ddayDeleteBtn.textContent = '정말 삭제할까요? 한 번 더 누르세요';
+      ddayDeleteBtn.classList.add('danger-confirm');
+      confirmDdayDeleteTimer = setTimeout(resetDdayDeleteConfirm, 3000);
+      return;
+    }
+
+    resetDdayDeleteConfirm();
+    ddays = ddays.filter(d => d.id !== editingDdayId);
+    await saveDdays();
+    renderDdayList();
+    closeDdayModal();
+    showToast('디데이를 삭제했어요.');
+  });
+
   /* ---------------- init ---------------- */
   async function init(){
     document.getElementById('calendar-loading').style.display = 'block';
@@ -1191,13 +1431,14 @@
     document.getElementById('calendar').style.display = 'none';
     updateStorageModeNote();
     try{
-      const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries()]);
+      const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries(), loadDdays()]);
       const watchdog = new Promise((resolve) => setTimeout(resolve, 9000));
       await Promise.race([loadAll, watchdog]);
       const ok = buildCalendar();
       if(ok){
         refreshUpcoming();
         updateAdminUi();
+        renderDdayList();
       }
     }catch(e){
       showCalendarError();

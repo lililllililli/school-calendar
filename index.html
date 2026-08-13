@@ -318,6 +318,22 @@
     margin-bottom:6px; font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.04em;
   }
   .meal-admin-controls input[type="file"]{ font-size:12.5px; width:100%; }
+
+  /* ---------- 공지창 스타일 ---------- */ 
+.notice-panel{ margin-bottom:22px; border-color:var(--color-plum); } 
+.notice-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:12px; flex-wrap:wrap; } 
+.notice-header h2{ font-family:'Noto Serif KR', serif; font-size:18px; margin:0 0 2px; color:var(--color-plum); } 
+.notice-list{ display:flex; flex-direction:column; gap:8px; } 
+.notice-item{ background:var(--color-paper); border:1.5px solid var(--color-grid); border-radius:8px; padding:12px 14px; display:flex; gap:12px; align-items:flex-start; } 
+.notice-item.important{ border-color:var(--color-coral); background:rgba(225,90,69,0.03); } 
+.notice-badge{ display:inline-block; font-size:11px; font-family:'IBM Plex Mono', monospace; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; flex-shrink:0; } 
+.notice-badge.general{ background:var(--color-sky); } 
+.notice-badge.important{ background:var(--color-coral); } 
+.notice-content{ flex:1; } 
+.notice-title{ font-size:14px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; } 
+.notice-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--color-ink-soft); } 
+.notice-body{ font-size:13.5px; line-height:1.45; color:var(--color-ink); white-space:pre-wrap; margin-top:4px; } 
+.notice-item-actions{ display:flex; gap:6px; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -344,6 +360,19 @@
       <button id="meal-open-btn" class="stamp-btn subtle">급식표 보기</button>
     </div>
   </header>
+    <div class="panel notice-panel">
+      <div class="notice-header">
+        <div>
+          <h2>우리 반 공지사항</h2>
+          <p class="sub">관리자가 올리는 중요 및 일반 공지예요.</p>
+        </div>
+        <button id="notice-manage-btn" class="stamp-btn subtle" style="display:none;">+ 공지 올리기</button>
+      </div>
+      <div id="notice-list" class="notice-list">
+        <div class="empty-note">불러오는 중...</div>
+      </div>
+    </div>
+
 
   <div class="panel dday-panel">
     <div class="dday-panel-header">
@@ -583,7 +612,34 @@
     <button type="button" class="stamp-btn subtle" id="holiday-new-btn" style="margin-top:12px; width:100%; justify-content:center;">+ 새 날짜 추가</button>
   </div>
 </div>
-
+<!-- 공지 작성/수정 모달 (관리자) -->
+<div id="notice-modal" class="modal-overlay hidden">
+  <div class="modal" style="max-width:440px;">
+    <h3 id="notice-modal-heading">공지 올리기</h3>
+    <p class="desc">중요 공지와 일반 공지를 구분하여 등록할 수 있어요.</p>
+    <div class="field">
+      <label for="notice-type-select">공지 구분</label>
+      <select id="notice-type-select">
+        <option value="general">일반 공지</option>
+        <option value="important">중요 공지</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="notice-title-input">제목</label>
+      <input id="notice-title-input" type="text" placeholder="예: 수행평가 제출 안내">
+    </div>
+    <div class="field">
+      <label for="notice-body-input">내용</label>
+      <textarea id="notice-body-input" placeholder="공지 내용을 입력하세요" style="min-height:100px;"></textarea>
+    </div>
+    <p class="error-text" id="notice-error">제목과 내용을 입력해주세요.</p>
+    <div class="modal-actions">
+      <button type="button" class="btn danger" id="notice-delete" style="display:none;">삭제</button>
+      <button type="button" class="btn ghost" id="notice-cancel">취소</button>
+      <button type="button" class="btn primary" id="notice-save">저장</button>
+    </div>
+  </div>
+</div>
 <!-- 급식표 -->
 <div id="meal-modal" class="modal-overlay hidden">
   <div class="modal" style="max-width:520px;">
@@ -669,6 +725,161 @@
   let isAdmin = false;
   let editingId = null;
   let calendar = null;
+
+  const NOTICE_KEY = 'notices';
+  let notices = [];
+  let editingNoticeId = null;
+
+  async function loadNotices(){
+    try{
+      const res = await storageGet(NOTICE_KEY, true);
+      notices = res && res.value ? JSON.parse(res.value) : [];
+    }catch(e){
+      notices = [];
+    }
+  }
+
+  async function saveNotices(){
+    return await saveWithRetry(NOTICE_KEY, JSON.stringify(notices), '공지사항');
+  }
+
+  function renderNoticeList(){
+    const container = document.getElementById('notice-list');
+    if(!container) return;
+
+    if(notices.length === 0){
+      container.innerHTML = '<div class="empty-note">등록된 공지사항이 없어요.' + (isAdmin ? ' "+ 공지 올리기" 버튼으로 작성해보세요.' : '') + '</div>';
+      return;
+    }
+
+    const sorted = [...notices].sort((a,b) => {
+      if(a.isImportant !== b.isImportant) return b.isImportant ? 1 : -1;
+      return b.createdAt.localeCompare(a.createdAt);
+    });
+
+    container.innerHTML = sorted.map(n => {
+      const badgeClass = n.isImportant ? 'important' : 'general';
+      const badgeText = n.isImportant ? '중요' : '일반';
+      const itemClass = n.isImportant ? 'notice-item important' : 'notice-item';
+      return `
+        <div class="${itemClass}" data-id="${n.id}">
+          <span class="notice-badge ${badgeClass}">${badgeText}</span>
+          <div class="notice-content">
+            <div class="notice-title">
+              <span>${escapeHtml(n.title)}</span>
+              <span class="notice-date">${n.createdAt.slice(0,10)}</span>
+            </div>
+            <div class="notice-body">${escapeHtml(n.body)}</div>
+            ${isAdmin ? `
+              <div class="notice-item-actions">
+                <button type="button" class="mini-btn notice-edit-btn" data-id="${n.id}">수정</button>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if(isAdmin){
+      container.querySelectorAll('.notice-edit-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openNoticeModal(btn.dataset.id);
+        });
+      });
+    }
+  }
+
+  const noticeModal = document.getElementById('notice-modal');
+  const noticeTypeSelect = document.getElementById('notice-type-select');
+  const noticeTitleInput = document.getElementById('notice-title-input');
+  const noticeBodyInput = document.getElementById('notice-body-input');
+  const noticeError = document.getElementById('notice-error');
+  const noticeDeleteBtn = document.getElementById('notice-delete');
+  let confirmingNoticeDelete = false;
+  let confirmNoticeDeleteTimer = null;
+
+  function resetNoticeDeleteConfirm(){
+    confirmingNoticeDelete = false;
+    noticeDeleteBtn.textContent = '삭제';
+    noticeDeleteBtn.classList.remove('danger-confirm');
+    if(confirmNoticeDeleteTimer){ clearTimeout(confirmNoticeDeleteTimer); confirmNoticeDeleteTimer = null; }
+  }
+
+  function openNoticeModal(id){
+    resetNoticeDeleteConfirm();
+    editingNoticeId = id || null;
+    const existing = id ? notices.find(n => n.id === id) : null;
+
+    document.getElementById('notice-modal-heading').textContent = existing ? '공지 수정' : '공지 올리기';
+    noticeTypeSelect.value = existing && existing.isImportant ? 'important' : 'general';
+    noticeTitleInput.value = existing ? existing.title : '';
+    noticeBodyInput.value = existing ? existing.body : '';
+    noticeError.style.display = 'none';
+    noticeDeleteBtn.style.display = existing ? 'inline-block' : 'none';
+
+    noticeModal.classList.remove('hidden');
+    setTimeout(() => noticeTitleInput.focus(), 50);
+  }
+
+  function closeNoticeModal(){
+    noticeModal.classList.add('hidden');
+    editingNoticeId = null;
+    resetNoticeDeleteConfirm();
+  }
+
+  document.getElementById('notice-manage-btn').addEventListener('click', () => openNoticeModal(null));
+  document.getElementById('notice-cancel').addEventListener('click', closeNoticeModal);
+
+  document.getElementById('notice-save').addEventListener('click', async () => {
+    const title = noticeTitleInput.value.trim();
+    const body = noticeBodyInput.value.trim();
+    const isImportant = noticeTypeSelect.value === 'important';
+
+    if(!title || !body){
+      noticeError.style.display = 'block';
+      return;
+    }
+    noticeError.style.display = 'none';
+
+    if(editingNoticeId){
+      const idx = notices.findIndex(n => n.id === editingNoticeId);
+      if(idx > -1) notices[idx] = { ...notices[idx], title, body, isImportant };
+    } else {
+      notices.push({
+        id: uid(),
+        title,
+        body,
+        isImportant,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    await saveNotices();
+    renderNoticeList();
+    closeNoticeModal();
+    showToast('공지사항이 저장되었어요.');
+  });
+
+  noticeDeleteBtn.addEventListener('click', async () => {
+    if(!editingNoticeId) return;
+
+    if(!confirmingNoticeDelete){
+      confirmingNoticeDelete = true;
+      noticeDeleteBtn.textContent = '정말 삭제할까요? 한 번 더 누르세요';
+      noticeDeleteBtn.classList.add('danger-confirm');
+      confirmNoticeDeleteTimer = setTimeout(resetNoticeDeleteConfirm, 3000);
+      return;
+    }
+
+    resetNoticeDeleteConfirm();
+    notices = notices.filter(n => n.id !== editingNoticeId);
+    await saveNotices();
+    renderNoticeList();
+    closeNoticeModal();
+    showToast('공지사항을 삭제했어요.');
+  });
+
 
   /* =====================================================================
      친구들과 함께 쓰는 배포용 캘린더로 만들고 싶다면?
@@ -1158,6 +1369,9 @@
     renderDdayList();
     const holidayManageBtnEl = document.getElementById('holiday-manage-btn');
     if(holidayManageBtnEl) holidayManageBtnEl.style.display = isAdmin ? 'inline-flex' : 'none';
+      const noticeManageBtn = document.getElementById('notice-manage-btn');
+    if(noticeManageBtn) noticeManageBtn.style.display = isAdmin ? 'inline-flex' : 'none';
+    renderNoticeList();
   }
 
   function updateInquiryBadge(){
@@ -1817,25 +2031,25 @@
 
   /* ---------------- init ---------------- */
   async function init(){
-    document.getElementById('calendar-loading').style.display = 'block';
-    document.getElementById('calendar-error').style.display = 'none';
-    document.getElementById('calendar').style.display = 'none';
-    updateStorageModeNote();
-    try{
-      const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries(), loadDdays(), loadHolidays(), loadMealPhoto()]);
-      const watchdog = new Promise((resolve) => setTimeout(resolve, 9000));
-      await Promise.race([loadAll, watchdog]);
-      const ok = buildCalendar();
-      if(ok){
-        refreshUpcoming();
-        updateAdminUi();
-        renderDdayList();
-      }
-    }catch(e){
-      showCalendarError();
+  document.getElementById('calendar-loading').style.display = 'block';
+  document.getElementById('calendar-error').style.display = 'none';
+  document.getElementById('calendar').style.display = 'none';
+  updateStorageModeNote();
+  try{
+    const loadAll = Promise.all([loadAdminCode(), loadEvents(), loadInquiries(), loadDdays(), loadHolidays(), loadMealPhoto(), loadNotices()]);
+    const watchdog = new Promise((resolve) => setTimeout(resolve, 9000));
+    await Promise.race([loadAll, watchdog]);
+    const ok = buildCalendar();
+    if(ok){
+      refreshUpcoming();
+      updateAdminUi();
+      renderDdayList();
+      renderNoticeList();
     }
+  }catch(e){
+    showCalendarError();
   }
-
+}
   document.getElementById('calendar-retry').addEventListener('click', init);
 
   init();

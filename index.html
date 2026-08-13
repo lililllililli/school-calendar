@@ -319,21 +319,21 @@
   }
   .meal-admin-controls input[type="file"]{ font-size:12.5px; width:100%; }
 
-  /* ---------- 공지창 스타일 ---------- */ 
-.notice-panel{ margin-bottom:22px; border-color:var(--color-plum); } 
-.notice-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:12px; flex-wrap:wrap; } 
-.notice-header h2{ font-family:'Noto Serif KR', serif; font-size:18px; margin:0 0 2px; color:var(--color-plum); } 
-.notice-list{ display:flex; flex-direction:column; gap:8px; } 
-.notice-item{ background:var(--color-paper); border:1.5px solid var(--color-grid); border-radius:8px; padding:12px 14px; display:flex; gap:12px; align-items:flex-start; } 
-.notice-item.important{ border-color:var(--color-coral); background:rgba(225,90,69,0.03); } 
-.notice-badge{ display:inline-block; font-size:11px; font-family:'IBM Plex Mono', monospace; font-weight:700; padding:2px 8px; border-radius:999px; color:#fff; flex-shrink:0; } 
-.notice-badge.general{ background:var(--color-sky); } 
-.notice-badge.important{ background:var(--color-coral); } 
-.notice-content{ flex:1; } 
-.notice-title{ font-size:14px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:8px; } 
-.notice-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--color-ink-soft); } 
-.notice-body{ font-size:13.5px; line-height:1.45; color:var(--color-ink); white-space:pre-wrap; margin-top:4px; } 
-.notice-item-actions{ display:flex; gap:6px; margin-top:6px; }
+  /* ---------- 공지사항 패널 (다른 패널과 통일) ---------- */
+  .notice-panel{ margin-bottom:24px; }
+  .notice-header{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px; flex-wrap:wrap; }
+  .notice-header h2{ font-family:'Noto Serif KR', serif; font-size:18px; margin:0 0 2px; color:var(--color-ink); }
+  .notice-list{ display:flex; flex-direction:column; gap:10px; }
+  .notice-item{ background:var(--color-paper); border:1.5px solid var(--color-grid); border-radius:12px; padding:14px 16px; display:flex; gap:14px; align-items:flex-start; }
+  .notice-item.important{ border-color:var(--color-plum); background:rgba(74,43,67,0.02); }
+  .notice-badge{ display:inline-block; font-size:11px; font-family:'IBM Plex Mono', monospace; font-weight:700; padding:3px 8px; border-radius:999px; color:#fff; flex-shrink:0; }
+  .notice-badge.general{ background:var(--color-sky); }
+  .notice-badge.important{ background:var(--color-plum); }
+  .notice-content{ flex:1; min-width:0; }
+  .notice-title{ font-size:14px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; gap:8px; color:var(--color-ink); }
+  .notice-date{ font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--color-ink-soft); font-weight:normal; flex-shrink:0; }
+  .notice-body{ font-size:13.5px; line-height:1.5; color:var(--color-ink); white-space:pre-wrap; margin-top:4px; word-break:break-all; }
+  .notice-item-actions{ display:flex; gap:6px; margin-top:8px; }
 </style>
 </head>
 <body>
@@ -983,7 +983,7 @@
     const note = document.getElementById('storage-mode-note');
     if(!note) return;
     if(db){
-      note.textContent = '☁️ Firebase로 저장돼요 — 이 웹사이트를 여는 모두와 실시간으로 공유돼요.';
+      note.textContent = '☁️ 이 웹사이트를 여는 모두와 실시간으로 공유돼요.';
     } else if(hasCloudStorage){
       note.textContent = '☁️ 이 캘린더는 이 링크로 접속하는 모든 사람과 함께 공유돼요.';
     } else if(canUseLocal){
